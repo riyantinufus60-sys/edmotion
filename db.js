@@ -5,14 +5,14 @@ const db = mysql.createConnection({
   port    : process.env.DB_PORT     || 3306,
   user    : process.env.DB_USER     || "root",
   password: process.env.DB_PASSWORD || "",
-  database: "edmotion",
+  database: process.env.DB_NAME     || "railway",
 });
 
 db.connect((err) => {
   if (err) {
     console.error("[DB] edmotion gagal connect:", err.message);
   } else {
-    console.log("[DB] edmotion connected");
+    console.log("[DB] connected ke database:", process.env.DB_NAME || "railway");
   }
 });
 
