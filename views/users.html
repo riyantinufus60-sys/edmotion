@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>EdMotion — Users</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:      #080f1c;
+            --surface: #0d1829;
+            --card:    #111e30;
+            --border:  rgba(255,255,255,0.06);
+            --muted:   #64748b;
+            --text:    #e2eaf6;
+            --accent:  #6ee7b7;
+            --blue:    #60a5fa;
+            --red:     #f87171;
+            --amber:   #fbbf24;
+            --green:   #4ade80;
+            --radius:  14px;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+        .app { display: flex; min-height: 100vh; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex; flex-direction: column;
+            position: sticky; top: 0; height: 100vh;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .logo {
+            width: 42px; height: 42px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--blue));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px; color: #052e1e;
+        }
+        .brand-name { font-size: 16px; font-weight: 700; }
+        .brand-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        nav { display: flex; flex-direction: column; gap: 4px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 10px;
+            color: var(--muted); cursor: pointer;
+            text-decoration: none; font-size: 14px;
+            transition: all 0.18s;
+        }
+        .nav-item:hover  { background: rgba(255,255,255,0.04); color: var(--text); }
+        .nav-item.active {
+            background: rgba(96,165,250,0.1); color: var(--blue);
+            border-left: 3px solid var(--blue); padding-left: 9px;
+        }
+        .sidebar-footer {
+            margin-top: auto; padding-top: 16px;
+            border-top: 1px solid var(--border); position: relative;
+        }
+        .profile-btn {
+            display: flex; gap: 10px; align-items: center;
+            cursor: pointer; padding: 6px 8px; border-radius: 10px;
+            transition: background 0.18s;
+        }
+        .profile-btn:hover { background: rgba(255,255,255,0.04); }
+        .avatar {
+            width: 38px; height: 38px; border-radius: 9px;
+            background: linear-gradient(180deg, #0ea5b3, #2563eb);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 12px; flex-shrink: 0;
+        }
+        .profile-name { font-size: 13px; font-weight: 600; }
+        .profile-role { font-size: 11px; color: var(--muted); }
+        .user-dropdown {
+            display: none; position: absolute;
+            bottom: calc(100% + 8px); left: 0; right: 0;
+            background: #0d1829; border: 1px solid var(--border);
+            border-radius: 10px; padding: 6px; z-index: 200;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .user-dropdown.open { display: block; }
+        .dropdown-item {
+            padding: 9px 12px; font-size: 13px; color: var(--muted);
+            border-radius: 7px; cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+        }
+        .dropdown-item:hover { background: rgba(248,113,113,0.08); color: var(--red); }
+
+        /* ── Main ── */
+        .main { flex: 1; padding: 28px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+        .page-title { font-size: 22px; font-weight: 700; }
+        .page-sub   { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+        /* ── Search ── */
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+        .search {
+            flex: 1; display: flex; align-items: center;
+            background: var(--card); border: 1px solid var(--border);
+            padding: 10px 14px; border-radius: 10px; gap: 10px;
+            transition: border-color 0.2s;
+        }
+        .search:focus-within { border-color: var(--blue); }
+        .search input {
+            background: transparent; border: 0; outline: none;
+            color: var(--text); width: 100%; font-size: 14px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .search-clear {
+            cursor: pointer; color: var(--muted); font-size: 16px;
+            display: none; background: none; border: none; padding: 0;
+        }
+        .search-clear.visible { display: block; }
+        .btn-primary {
+            padding: 10px 18px; border-radius: 10px;
+            background: linear-gradient(45deg, var(--blue), var(--accent));
+            border: none; color: #052e1e; font-weight: 600;
+            cursor: pointer; font-size: 14px; white-space: nowrap;
+            font-family: 'Space Grotesk', sans-serif; transition: opacity 0.18s;
+        }
+        .btn-primary:hover { opacity: 0.88; }
+
+        /* ── Card / Table ── */
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px;
+        }
+        .card-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 14px;
+        }
+        .card-title { font-size: 15px; font-weight: 600; }
+        .card-meta  { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 11px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        tr.hidden-row { display: none; }
+        td.pass-col {
+            max-width: 180px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+            font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted);
+        }
+        td.mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+        .btn-delete {
+            padding: 4px 12px; font-size: 12px;
+            background: rgba(248,113,113,0.12);
+            border: 1px solid rgba(248,113,113,0.35);
+            color: var(--red); border-radius: 8px; cursor: pointer;
+            transition: all 0.18s; font-family: 'Space Grotesk', sans-serif;
+        }
+        .btn-delete:hover { background: rgba(248,113,113,0.25); border-color: var(--red); color: #fff; }
+
+        /* ── Alerts ── */
+        .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; }
+        .alert-success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: var(--green); }
+        .alert-error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+        #alertBanner { display: none; }
+        #alertBanner.show { display: block; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.65); z-index: 999;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius); padding: 28px 32px;
+            text-align: center; max-width: 360px; width: 90%;
+        }
+        .modal-box p { margin: 0 0 20px; font-size: 15px; line-height: 1.6; }
+        .modal-box .email-label { color: var(--red); font-weight: 600; word-break: break-all; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .modal-actions button {
+            padding: 8px 22px; border-radius: 8px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; border: none;
+        }
+        .modal-cancel  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1) !important; color: var(--text); }
+        .modal-confirm { background: #ef4444; color: #fff; }
+        .modal-confirm:hover { background: #dc2626; }
+
+        /* ── Add Modal ── */
+        .add-modal-box {
+            background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius); padding: 32px;
+            width: 90%; max-width: 420px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .add-modal-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .add-modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .form-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+        .form-input {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 14px; color: var(--text);
+            font-size: 14px; font-family: 'Space Grotesk', sans-serif;
+            outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--blue); }
+        .form-input::placeholder { color: var(--muted); }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+        .btn-cancel-form {
+            padding: 10px 20px; border-radius: 10px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text); font-size: 14px; font-weight: 600;
+            cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+        }
+        .btn-submit-form {
+            padding: 10px 20px; border-radius: 10px;
+            background: linear-gradient(45deg, var(--blue), var(--accent));
+            border: none; color: #052e1e; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+        }
+        .btn-submit-form:hover { opacity: 0.88; }
+        .pass-hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        @media (max-width: 900px) {
+            .app { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border); }
+            .main { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <p>⚠️ Hapus user<br>
+        <span class="email-label" id="modalEmail"></span>?<br>
+        <span style="font-size:12px;color:var(--muted)">Tindakan ini tidak dapat dibatalkan.</span></p>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeDeleteModal()">Batal</button>
+            <button class="modal-confirm" onclick="executeDelete()">Ya, Hapus</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="add-modal-box">
+        <div class="add-modal-title">➕ Add New User</div>
+        <div class="add-modal-sub">Buat akun baru untuk sistem EdMotion</div>
+        <div id="addModalAlert" style="display:none;margin-bottom:16px;"></div>
+        <div class="form-group">
+            <label class="form-label" for="new_name">Full Name</label>
+            <input class="form-input" type="text" id="new_name" placeholder="Nama lengkap">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="new_email">Email Address</label>
+            <input class="form-input" type="email" id="new_email" placeholder="contoh@email.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="new_password">Password</label>
+            <input class="form-input" type="password" id="new_password" placeholder="Minimal 8 karakter">
+            <span class="pass-hint">Minimal 8 karakter. Akan di-hash dengan bcrypt.</span>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="new_password2">Konfirmasi Password</label>
+            <input class="form-input" type="password" id="new_password2" placeholder="Ulangi password">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="new_role">Role</label>
+            <select class="form-input" id="new_role">
+                <option value="admin">Admin</option>
+                <option value="siswa">Siswa</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button class="btn-cancel-form" onclick="closeAddModal()">Batal</button>
+            <button class="btn-submit-form" onclick="submitAddUser()">Simpan User</button>
+        </div>
+    </div>
+</div>
+
+<!-- APP -->
+<div class="app">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo">EM</div>
+            <div>
+                <div class="brand-name">EdMotion</div>
+                <div class="brand-sub">Face Expression Detection</div>
+            </div>
+        </div>
+        <nav>
+            <a href="/dashboard"   class="nav-item">🏠 &nbsp;Dashboard</a>
+            <a href="/live-report" class="nav-item">📊 &nbsp;Live Report</a>
+            <a href="/history"     class="nav-item">📜 &nbsp;History</a>
+            <div class="nav-item active">👥 &nbsp;Users</div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="profile-btn" id="profileBtn">
+                <div class="avatar" id="avatarInitial">EM</div>
+                <div>
+                    <div class="profile-name" id="profileName">Loading…</div>
+                    <div class="profile-role">Admin · Panel</div>
+                </div>
+            </div>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dropdown-item" id="logoutBtn">🚪 &nbsp;Logout</div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div>
+            <div class="page-title">Users</div>
+            <div class="page-sub">Manage registered accounts</div>
+        </div>
+
+        <div id="alertBanner" class="alert"></div>
+
+        <div class="header">
+            <div class="search">
+                🔍
+                <input id="searchInput" placeholder="Cari nama, email, atau role..."
+                    oninput="filterUsers(this.value)" autocomplete="off"/>
+                <button class="search-clear" id="clearBtn" onclick="clearSearch()">✕</button>
+            </div>
+            <button class="btn-primary" onclick="openAddModal()">➕ Add New User</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">User Management</div>
+                <div class="card-meta" id="countLabel">Memuat...</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Password Hash</th>
+                        <th>Created At</th>
+                        <th style="text-align:center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">
+                            ⏳ Memuat data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allUsers     = [];
+let deleteTarget = null;
+
+// ── INIT: cek session dulu, lalu load users ────────────────────────────────
+async function init() {
+    try {
+        const meRes = await fetch('/api/me');
+        if (!meRes.ok) { window.location.href = '/'; return; }
+        const me = await meRes.json();
+        const name = me.name || 'Admin';
+        document.getElementById('profileName').textContent   = name;
+        document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+    } catch {
+        window.location.href = '/';
+        return;
+    }
+    await loadUsers();
+}
+
+// ── LOAD USERS ─────────────────────────────────────────────────────────────
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/users');
+
+        // Jika response bukan JSON (misal redirect HTML), tangkap di sini
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('Server tidak mengembalikan JSON. Pastikan route /api/users sudah ada di server.js.');
+        }
+
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const data = await res.json();
+        allUsers = Array.isArray(data.users) ? data.users : [];
+        renderTable(allUsers);
+        document.getElementById('countLabel').textContent = 'Total: ' + allUsers.length + ' users';
+    } catch (err) {
+        document.getElementById('userTableBody').innerHTML =
+            `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:32px;">
+                ❌ ${safeText(err.message)}
+            </td></tr>`;
+        document.getElementById('countLabel').textContent = 'Error';
+    }
+}
+
+// ── RENDER TABLE ───────────────────────────────────────────────────────────
+function renderTable(users) {
+    const tbody = document.getElementById('userTableBody');
+
+    if (!users || users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">
+            Tidak ada data user.
+        </td></tr>`;
+        return;
+    }
+
+    // Simpan id→data di Map supaya onclick bisa akses tanpa escape HTML di atribut
+    window._userMap = {};
+    users.forEach(u => { window._userMap[u.id] = u; });
+
+    tbody.innerHTML = users.map(u => {
+        const roleStyle = u.role === 'admin'
+            ? 'background:rgba(96,165,250,0.12);color:var(--blue);'
+            : 'background:rgba(110,231,183,0.12);color:var(--accent);';
+
+        const created = u.created_at
+            ? new Date(u.created_at).toLocaleString('id-ID', { hour12: false })
+            : '-';
+
+        return `
+        <tr class="user-row"
+            data-name="${safeAttr((u.name||'').toLowerCase())}"
+            data-email="${safeAttr((u.email||'').toLowerCase())}"
+            data-role="${safeAttr((u.role||'').toLowerCase())}">
+            <td class="mono">${u.id}</td>
+            <td>${safeText(u.name)}</td>
+            <td>${safeText(u.email)}</td>
+            <td>
+                <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;${roleStyle}">
+                    ${safeText(u.role)}
+                </span>
+            </td>
+            <td class="pass-col" title="${safeAttr(u.password)}">${safeText(u.password)}</td>
+            <td class="mono">${created}</td>
+            <td style="text-align:center;">
+                <button class="btn-delete" data-uid="${u.id}">🗑 Delete</button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // ✅ Pasang event listener di tbody (event delegation) — hindari masalah escaping di onclick atribut
+    tbody.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const uid  = parseInt(btn.dataset.uid);
+            const user = window._userMap[uid];
+            if (user) confirmDelete(uid, user.email);
+        });
+    });
+}
+
+// ── HELPER: escape text & attribute ───────────────────────────────────────
+function safeText(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str || '');
+    return d.innerHTML;
+}
+function safeAttr(str) {
+    return String(str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── SEARCH ─────────────────────────────────────────────────────────────────
+function filterUsers(query) {
+    const q      = query.trim().toLowerCase();
+    const rows   = document.querySelectorAll('.user-row');
+    const label  = document.getElementById('countLabel');
+    const clrBtn = document.getElementById('clearBtn');
+    let visible  = 0;
+
+    clrBtn.classList.toggle('visible', q.length > 0);
+    rows.forEach(row => {
+        const match = (row.dataset.name  || '').includes(q) ||
+                      (row.dataset.email || '').includes(q) ||
+                      (row.dataset.role  || '').includes(q);
+        row.classList.toggle('hidden-row', !match);
+        if (match) visible++;
+    });
+
+    label.textContent = q.length
+        ? `Menampilkan: ${visible} / ${allUsers.length} users`
+        : `Total: ${allUsers.length} users`;
+}
+
+function clearSearch() {
+    const inp = document.getElementById('searchInput');
+    inp.value = '';
+    filterUsers('');
+    inp.focus();
+}
+
+// ── DELETE ─────────────────────────────────────────────────────────────────
+function confirmDelete(id, email) {
+    deleteTarget = { id, email };
+    document.getElementById('modalEmail').textContent = email;
+    document.getElementById('deleteModal').classList.add('show');
+}
+function closeDeleteModal() {
+    deleteTarget = null;
+    document.getElementById('deleteModal').classList.remove('show');
+}
+async function executeDelete() {
+    if (!deleteTarget) return;
+    const { id, email } = deleteTarget;
+    closeDeleteModal();
+    try {
+        const res  = await fetch('/api/users/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Gagal menghapus user');
+        showAlert('✅ User ' + email + ' berhasil dihapus.', 'success');
+        await loadUsers();
+    } catch (err) {
+        showAlert('❌ ' + err.message, 'error');
+    }
+}
+document.getElementById('deleteModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
+});
+
+// ── ADD USER ───────────────────────────────────────────────────────────────
+function openAddModal() {
+    ['new_name','new_email','new_password','new_password2'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('new_role').value = 'admin';
+    setAddAlert('', '');
+    document.getElementById('addUserModal').classList.add('show');
+}
+function closeAddModal() {
+    document.getElementById('addUserModal').classList.remove('show');
+}
+function setAddAlert(msg, type) {
+    const el = document.getElementById('addModalAlert');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.className = 'alert alert-' + type;
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+async function submitAddUser() {
+    const name     = document.getElementById('new_name').value.trim();
+    const email    = document.getElementById('new_email').value.trim();
+    const password = document.getElementById('new_password').value;
+    const confirm  = document.getElementById('new_password2').value;
+    const role     = document.getElementById('new_role').value;
+
+    if (!name || !email || !password || !confirm)
+        return setAddAlert('Semua field wajib diisi.', 'error');
+    if (password.length < 8)
+        return setAddAlert('Password minimal 8 karakter.', 'error');
+    if (password !== confirm)
+        return setAddAlert('Konfirmasi password tidak cocok.', 'error');
+
+    try {
+        const res  = await fetch('/api/register', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ name, email, password, confirm, role })
+        });
+        const text = await res.text();
+        const msgMap = {
+            invalid_input:                  'Semua field wajib diisi.',
+            invalid_email:                  'Format email tidak valid.',
+            email_student_required:         'Email siswa harus mengandung @student.',
+            admin_cannot_use_student_email: 'Admin tidak boleh pakai email @student.',
+            password_too_short:             'Password minimal 8 karakter.',
+            password_tidak_cocok:           'Konfirmasi password tidak cocok.',
+            email_sudah_ada:                'Email sudah terdaftar.',
+            server_error:                   'Terjadi kesalahan server.',
+        };
+        if (text === 'success') {
+            closeAddModal();
+            showAlert('✅ User ' + email + ' berhasil ditambahkan.', 'success');
+            await loadUsers();
+        } else {
+            setAddAlert('❌ ' + (msgMap[text] || text), 'error');
+        }
+    } catch {
+        setAddAlert('❌ Gagal terhubung ke server.', 'error');
+    }
+}
+document.getElementById('addUserModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('addUserModal')) closeAddModal();
+});
+
+// ── ALERT BANNER ───────────────────────────────────────────────────────────
+let alertTimer = null;
+function showAlert(msg, type) {
+    const el = document.getElementById('alertBanner');
+    el.className = 'alert alert-' + type + ' show';
+    el.textContent = msg;
+    clearTimeout(alertTimer);
+    alertTimer = setTimeout(() => { el.className = 'alert'; el.style.display = ''; }, 4000);
+}
+
+// ── SIDEBAR DROPDOWN ───────────────────────────────────────────────────────
+document.getElementById('profileBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('userDropdown').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+    document.getElementById('userDropdown').classList.remove('open');
+});
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    fetch('/api/logout', { method: 'POST' }).finally(() => { window.location.href = '/'; });
+});
+
+// ── START ──────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

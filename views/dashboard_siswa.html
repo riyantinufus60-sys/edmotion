@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdMotion — Dashboard Siswa</title>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg:      #f0f4fb;
+    --surface: #ffffff;
+    --border:  #e2e8f0;
+    --border2: #cbd5e1;
+    --text:    #0f172a;
+    --muted:   #64748b;
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --primary-mid: #bfdbfe;
+    --accent:  #06b6d4;
+    --visual:      #3b82f6;
+    --auditory:    #06b6d4;
+    --reading:     #8b5cf6;
+    --kinesthetic: #f59e0b;
+    --radius: 16px;
+    --shadow: 0 1px 4px rgba(15,23,42,.06), 0 4px 16px rgba(15,23,42,.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 1px 0 var(--border);
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--primary);
+    display: grid; place-items: center;
+  }
+  .brand-logo svg { width: 20px; height: 20px; }
+  .brand-info { display: flex; flex-direction: column; }
+  .brand-name { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; line-height: 1.2; }
+  .brand-sub  { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .user-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 30px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 13px; font-weight: 600; color: var(--text);
+  }
+  .user-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: grid; place-items: center; font-size: 10px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .btn-logout {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    cursor: pointer; transition: all .15s;
+    text-decoration: none;
+  }
+  .btn-logout:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+
+  main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+  .page-title {
+    font-size: 28px; font-weight: 800; color: var(--text);
+    letter-spacing: -0.02em; margin-bottom: 6px;
+  }
+  .page-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .page-subtitle strong { color: var(--primary); font-weight: 600; }
+
+  .status-bar {
+    display: none; align-items: center; gap: 8px;
+    background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
+    padding: 10px 16px; margin-bottom: 20px;
+    font-size: 13px; font-weight: 600; color: #065f46;
+  }
+  .status-bar.show { display: flex; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #10b981; flex-shrink: 0;
+    animation: pulse-green 1.5s infinite;
+  }
+  @keyframes pulse-green { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.85)} }
+
+  .progress-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+    margin-bottom: 20px; box-shadow: var(--shadow);
+  }
+  .progress-bar-wrap {
+    height: 5px; background: #f1f5f9; border-radius: 99px; overflow: hidden; margin-bottom: 20px;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--visual), var(--auditory), var(--reading), var(--kinesthetic));
+    transition: width .5s ease; width: 0%;
+  }
+
+  .progress-steps {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .prog-step {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 12px 8px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: #f8fafc;
+    transition: all .25s;
+  }
+  .prog-step.active {
+    border-color: var(--step-color, var(--primary));
+    background: var(--step-bg, #eff6ff);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-color, var(--primary)) 15%, transparent);
+  }
+  .prog-step.done { border-color: #a7f3d0; background: #ecfdf5; }
+
+  .prog-icon-wrap {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid var(--border2);
+    display: grid; place-items: center;
+    background: #fff; font-size: 18px;
+    transition: all .25s;
+  }
+  .prog-step.active .prog-icon-wrap {
+    border-color: var(--step-color, var(--primary));
+    background: var(--step-bg, #eff6ff);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--step-color, var(--primary)) 12%, transparent);
+  }
+  .prog-step.done .prog-icon-wrap { border-color: #10b981; background: #ecfdf5; }
+  .prog-label-name {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); transition: color .25s;
+  }
+  .prog-step.active .prog-label-name { color: var(--step-color, var(--primary)); }
+  .prog-step.done .prog-label-name   { color: #059669; }
+  .prog-label-status { font-size: 10px; color: var(--muted); }
+  .prog-step.active .prog-label-status { color: var(--step-color, var(--primary)); font-weight: 600; }
+  .prog-step.done   .prog-label-status { color: #059669; font-weight: 600; }
+
+  .vark-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-bottom: 20px;
+  }
+  .vark-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 18px 14px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    box-shadow: var(--shadow); transition: transform .15s, box-shadow .15s;
+    cursor: default; position: relative; overflow: hidden;
+  }
+  .vark-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+    border-radius: 0 0 12px 12px;
+  }
+  .vark-card.visual::after       { background: var(--visual); }
+  .vark-card.auditory::after     { background: var(--auditory); }
+  .vark-card.reading::after      { background: var(--reading); }
+  .vark-card.kinesthetic::after  { background: var(--kinesthetic); }
+  .vark-card.active-card { border-width: 2px; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.10); }
+  .vark-card.visual.active-card       { border-color: var(--visual); }
+  .vark-card.auditory.active-card     { border-color: var(--auditory); }
+  .vark-card.reading.active-card      { border-color: var(--reading); }
+  .vark-card.kinesthetic.active-card  { border-color: var(--kinesthetic); }
+
+  .vc-icon-wrap {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: grid; place-items: center; font-size: 26px;
+    background: #f1f5f9;
+  }
+  .visual .vc-icon-wrap       { background: #eff6ff; }
+  .auditory .vc-icon-wrap     { background: #ecfeff; }
+  .reading .vc-icon-wrap      { background: #f5f3ff; }
+  .kinesthetic .vc-icon-wrap  { background: #fffbeb; }
+
+  .vc-name {
+    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  }
+  .visual .vc-name       { color: var(--visual); }
+  .auditory .vc-name     { color: var(--auditory); }
+  .reading .vc-name      { color: var(--reading); }
+  .kinesthetic .vc-name  { color: var(--kinesthetic); }
+
+  .vc-status { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .vc-status.running { color: var(--primary); font-weight: 700; }
+  .vc-status.done    { color: #059669; font-weight: 700; }
+
+  .start-area {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 20px 0;
+  }
+  .btn-start-main {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 48px; border-radius: 12px; border: none;
+    background: var(--primary); color: #fff;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(37,99,235,.35);
+    transition: all .15s;
+  }
+  .btn-start-main:hover    { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(37,99,235,.4); }
+  .btn-start-main:active   { transform: scale(.97); }
+  .btn-start-main:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-start-icon { font-size: 18px; }
+  .start-hint { font-size: 12px; color: var(--muted); }
+
+  #videoPanel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+    box-shadow: var(--shadow); display: none;
+  }
+  .video-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f8fafc;
+  }
+  .video-title { font-weight: 700; font-size: 15px; }
+  .video-badge {
+    padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase;
+    background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe;
+  }
+  .video-area { background: #000; aspect-ratio: 16/9; position: relative; }
+  .video-area video { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+  .pause-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; color: #fff; font-weight: 700; font-size: 16px;
+    pointer-events: none;
+  }
+  .pause-overlay.show { display: flex; }
+  .pause-overlay-icon { font-size: 40px; }
+
+  .pause-play-btn {
+    pointer-events: all;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 28px; border-radius: 30px; border: 2px solid rgba(255,255,255,.7);
+    background: rgba(255,255,255,.15); backdrop-filter: blur(4px);
+    color: #fff; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+  }
+  .pause-play-btn:hover { background: rgba(255,255,255,.28); border-color: #fff; transform: scale(1.04); }
+
+  #noFaceOverlay {
+    display: none;
+    position: absolute; inset: 0;
+    background: rgba(10,15,35,.82);
+    backdrop-filter: blur(4px);
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; z-index: 10;
+  }
+  #noFaceOverlay.visible { display: flex; }
+  .noface-icon { font-size: 52px; animation: noface-pulse 1.4s infinite; }
+  @keyframes noface-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .noface-title { font-size: 17px; font-weight: 800; color: #fff; }
+  .noface-sub { font-size: 12px; color: rgba(255,255,255,.55); text-align: center; max-width: 240px; line-height: 1.6; }
+  .noface-countdown { font-size: 12px; font-weight: 700; color: #ef476f; background: rgba(239,71,111,.15); border: 1px solid rgba(239,71,111,.3); padding: 5px 16px; border-radius: 20px; }
+
+  #camPopup {
+    position: fixed; bottom: 20px; right: 20px; z-index: 300;
+    width: 288px; border-radius: 16px;
+    background: #fff; border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(15,23,42,.14);
+    display: none; flex-direction: column; overflow: hidden;
+    user-select: none;
+  }
+  #camPopup.open { display: flex; }
+  #camPopup.dragging { box-shadow: 0 16px 48px rgba(15,23,42,.22); opacity: .96; transition: none !important; }
+  .cam-topbar {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f8fafc; cursor: grab;
+  }
+  .cam-topbar:active { cursor: grabbing; }
+  .cam-label { font-size: 12px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .cam-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; animation: pulse-green 1s infinite; }
+  .cam-live-dot.paused { background: #f59e0b; animation: none; }
+  .cam-close-btn {
+    width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; cursor: pointer; font-size: 12px; color: var(--muted);
+    display: grid; place-items: center; transition: .15s;
+  }
+  .cam-close-btn:hover { background: var(--border); }
+  .cam-video-wrap { position: relative; background: #0f172a; }
+  #camStream { width: 100%; height: 180px; object-fit: cover; display: block; }
+  #camCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .cam-body-content { padding: 10px 14px; }
+  .cam-emotion-main { font-size: 16px; font-weight: 800; text-align: center; color: var(--text); margin-bottom: 8px; }
+  .emo-bars { display: flex; flex-direction: column; gap: 5px; }
+  .emo-row  { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+  .emo-name { width: 50px; color: var(--muted); flex-shrink: 0; font-weight: 500; }
+  .emo-track { flex: 1; height: 4px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+  .emo-fill  { height: 100%; border-radius: 99px; transition: width .4s ease; }
+  .emo-pct  { width: 28px; text-align: right; color: var(--muted); font-weight: 600; }
+  .cam-footer-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; font-size: 10px; color: var(--muted);
+    border-top: 1px solid var(--border); padding-top: 7px;
+  }
+  .cam-vark-pill { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-mid); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+  .cam-landmark-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+    letter-spacing: .04em;
+    background: rgba(239,71,111,.12); color: #ef476f; border: 1px solid rgba(239,71,111,.25);
+  }
+  .cam-landmark-badge.detected { background: rgba(16,185,129,.12); color: #059669; border-color: rgba(16,185,129,.3); }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(15,23,42,.45); backdrop-filter: blur(4px);
+    display: none; place-items: center;
+  }
+  .modal-backdrop.open { display: grid; }
+  .modal-card {
+    width: min(480px, 92vw); border-radius: 20px;
+    background: #fff; border: 1px solid var(--border);
+    box-shadow: 0 24px 64px rgba(15,23,42,.2); overflow: hidden;
+  }
+  .modal-head { padding: 24px 26px 14px; }
+  .modal-head h2 { font-size: 20px; font-weight: 800; color: var(--text); }
+  .modal-head p  { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+  .modal-body { padding: 0 26px 16px; }
+  .modal-actions { padding: 14px 26px 22px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border); }
+
+  .vark-seq-row { display: flex; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 14px 0; }
+  .seq-item { flex: 1; padding: 12px 6px; text-align: center; font-size: 11px; font-weight: 700; border-right: 1px solid var(--border); }
+  .seq-item:last-child { border-right: none; }
+  .seq-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .seq-item.v { color: var(--visual); background: #eff6ff; }
+  .seq-item.a { color: var(--auditory); background: #ecfeff; }
+  .seq-item.r { color: var(--reading); background: #f5f3ff; }
+  .seq-item.k { color: var(--kinesthetic); background: #fffbeb; }
+
+  .btn-cancel { padding: 10px 22px; border-radius: 9px; border: 1px solid var(--border); background: #fff; color: var(--muted); font-weight: 600; font-size: 14px; cursor: pointer; transition: .15s; }
+  .btn-cancel:hover { background: #f8fafc; }
+  .btn-confirm { padding: 10px 26px; border-radius: 9px; border: none; background: var(--primary); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,.3); transition: .15s; }
+  .btn-confirm:hover { background: #1d4ed8; }
+
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .result-item { padding: 14px; border-radius: 12px; border: 1px solid var(--border); text-align: center; background: #f8fafc; }
+  .result-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .result-value { font-size: 20px; font-weight: 800; color: var(--text); }
+  .btn-ok { width: 100%; padding: 13px; border-radius: 10px; border: none; background: #059669; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,.25); transition: .15s; }
+  .btn-ok:hover { background: #047857; }
+
+  @media (max-width: 700px) {
+    .vark-grid { grid-template-columns: repeat(2,1fr); }
+    .progress-steps { grid-template-columns: repeat(2,1fr); }
+    header { padding: 0 16px; }
+    main { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 2L3 7v11h5v-5h4v5h5V7L10 2z" fill="white" opacity=".9"/>
+      </svg>
+    </div>
+    <div class="brand-info">
+      <span class="brand-name">EdMotion</span>
+      <span class="brand-sub">Student Emotion Dashboard</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="user-chip">
+      <div class="user-avatar" id="avatarInitial">?</div>
+      <span id="studentNameDisplay">Loading…</span>
+    </div>
+    <a href="#" class="btn-logout" id="btnLogout">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Logout
+    </a>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <h1 class="page-title">Sesi Pembelajaran VARK</h1>
+  <p class="page-subtitle">
+    Klik <strong>Mulai Sesi</strong> untuk memulai. Kamera akan mendeteksi emosi Anda secara real-time selama video berjalan.
+  </p>
+
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot"></div>
+    <span id="statusText">Sesi berjalan — data emosi dikirim ke admin secara real-time...</span>
+  </div>
+
+  <!-- Progress Card -->
+  <div class="progress-card">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBarFill"></div>
+    </div>
+    <div class="progress-steps">
+      <div class="prog-step" id="step-visual" style="--step-color:var(--visual); --step-bg:#eff6ff;">
+        <div class="prog-icon-wrap" id="icon-visual">👁️</div>
+        <span class="prog-label-name">Visual</span>
+        <span class="prog-label-status" id="status-visual">Menunggu</span>
+      </div>
+      <div class="prog-step" id="step-auditory" style="--step-color:var(--auditory); --step-bg:#ecfeff;">
+        <div class="prog-icon-wrap" id="icon-auditory">🎧</div>
+        <span class="prog-label-name">Auditory</span>
+        <span class="prog-label-status" id="status-auditory">Menunggu</span>
+      </div>
+      <div class="prog-step" id="step-reading" style="--step-color:var(--reading); --step-bg:#f5f3ff;">
+        <div class="prog-icon-wrap" id="icon-reading">📖</div>
+        <span class="prog-label-name">Reading</span>
+        <span class="prog-label-status" id="status-reading">Menunggu</span>
+      </div>
+      <div class="prog-step" id="step-kinesthetic" style="--step-color:var(--kinesthetic); --step-bg:#fffbeb;">
+        <div class="prog-icon-wrap" id="icon-kinesthetic">🤸</div>
+        <span class="prog-label-name">Kinesthetic</span>
+        <span class="prog-label-status" id="status-kinesthetic">Menunggu</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARK Cards -->
+  <div class="vark-grid">
+    <div class="vark-card visual" id="card-visual">
+      <div class="vc-icon-wrap">👁️</div>
+      <span class="vc-name">Visual</span>
+      <span class="vc-status" id="cardstatus-visual">Menunggu</span>
+    </div>
+    <div class="vark-card auditory" id="card-auditory">
+      <div class="vc-icon-wrap">🎧</div>
+      <span class="vc-name">Auditory</span>
+      <span class="vc-status" id="cardstatus-auditory">Menunggu</span>
+    </div>
+    <div class="vark-card reading" id="card-reading">
+      <div class="vc-icon-wrap">📖</div>
+      <span class="vc-name">Reading</span>
+      <span class="vc-status" id="cardstatus-reading">Menunggu</span>
+    </div>
+    <div class="vark-card kinesthetic" id="card-kinesthetic">
+      <div class="vc-icon-wrap">🤸</div>
+      <span class="vc-name">Kinesthetic</span>
+      <span class="vc-status" id="cardstatus-kinesthetic">Menunggu</span>
+    </div>
+  </div>
+
+  <!-- Start Button -->
+  <div class="start-area">
+    <button class="btn-start-main" id="btnStart">
+      <span class="btn-start-icon">▶</span>
+      Mulai Sesi
+    </button>
+    <span class="start-hint">Video VARK akan diputar berurutan secara otomatis</span>
+  </div>
+
+  <!-- VIDEO PANEL -->
+  <div id="videoPanel">
+    <div class="video-header">
+      <span class="video-title" id="videoTitle">Video VARK</span>
+      <span class="video-badge" id="videoBadge">VISUAL</span>
+    </div>
+    <div class="video-area" id="videoArea">
+      <video id="varkVideo" controls playsinline preload="auto"
+             style="width:100%;height:100%;object-fit:contain;background:#000;display:block;">
+        <source id="varkVideoSrc" src="" type="video/mp4">
+      </video>
+      <div class="pause-overlay" id="pauseOverlay">
+        <div class="pause-overlay-icon">⏸</div>
+        <span>Video Dijeda</span>
+        <button class="pause-play-btn" id="pausePlayBtn">▶ Lanjutkan Video</button>
+      </div>
+      <div id="noFaceOverlay">
+        <div class="noface-icon">👤</div>
+        <div class="noface-title">Wajah Tidak Terdeteksi</div>
+        <div class="noface-sub">Pastikan wajah Anda terlihat jelas di kamera agar video dapat dilanjutkan.</div>
+        <div class="noface-countdown" id="noFaceTimer">⏸ Video dijeda</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- CAMERA POPUP -->
+<div id="camPopup">
+  <div class="cam-topbar">
+    <div class="cam-label">
+      <div class="cam-live-dot" id="camLiveDot"></div>
+      Face Detection
+    </div>
+    <button class="cam-close-btn" id="camCloseBtn">✕</button>
+  </div>
+  <div class="cam-video-wrap">
+    <video id="camStream" autoplay muted playsinline></video>
+    <canvas id="camCanvas"></canvas>
+  </div>
+  <div class="cam-body-content">
+    <div class="cam-emotion-main" id="camEmotion">🔍 Memuat model...</div>
+    <div class="emo-bars">
+      <div class="emo-row">
+        <span class="emo-name">Normal</span>
+        <div class="emo-track"><div class="emo-fill" id="barNormal" style="width:0%;background:#3b82f6;"></div></div>
+        <span class="emo-pct" id="pctNormal">0%</span>
+      </div>
+      <div class="emo-row">
+        <span class="emo-name">Bosan</span>
+        <div class="emo-track"><div class="emo-fill" id="barBosan" style="width:0%;background:#f59e0b;"></div></div>
+        <span class="emo-pct" id="pctBosan">0%</span>
+      </div>
+      <div class="emo-row">
+        <span class="emo-name">Bingung</span>
+        <div class="emo-track"><div class="emo-fill" id="barBingung" style="width:0%;background:#8b5cf6;"></div></div>
+        <span class="emo-pct" id="pctBingung">0%</span>
+      </div>
+      <div class="emo-row">
+        <span class="emo-name">Menguap</span>
+        <div class="emo-track"><div class="emo-fill" id="barMenguap" style="width:0%;background:#ef4444;"></div></div>
+        <span class="emo-pct" id="pctMenguap">0%</span>
+      </div>
+    </div>
+    <div class="cam-footer-meta">
+      <span id="camFaces">0 wajah</span>
+      <span class="cam-vark-pill" id="camBadge">—</span>
+      <span class="cam-landmark-badge" id="landmarkBadge">⬡ Landmark</span>
+    </div>
+    <div style="margin-top:6px;font-size:10px;color:var(--muted);font-weight:600;" id="camStatus">Siap</div>
+  </div>
+</div>
+
+<!-- MODAL START -->
+<div class="modal-backdrop" id="modalStart">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>🚀 Mulai Sesi Belajar?</h2>
+      <p>Kamera akan aktif untuk mendeteksi ekspresi wajah Anda. Data emosi dikirim secara real-time ke dashboard admin.</p>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Urutan video yang akan diputar:</div>
+      <div class="vark-seq-row">
+        <div class="seq-item v"><span class="seq-icon">👁️</span>VISUAL</div>
+        <div class="seq-item a"><span class="seq-icon">🎧</span>AUDITORY</div>
+        <div class="seq-item r"><span class="seq-icon">📖</span>READING</div>
+        <div class="seq-item k"><span class="seq-icon">🤸</span>KINESTH.</div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);">⚠️ Pastikan wajah Anda terlihat jelas oleh kamera selama sesi.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelStart">Batal</button>
+      <button class="btn-confirm" id="btnConfirmStart">▶ Mulai Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL END -->
+<div class="modal-backdrop" id="modalEnd">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>🎉 Sesi Selesai!</h2>
+      <p>Hebat! Semua video VARK telah selesai. Data rekaman telah dikirim ke admin.</p>
+    </div>
+    <div class="modal-body">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-label">Emosi Dominan</div>
+          <div class="result-value" id="resEmotion">—</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Durasi Sesi</div>
+          <div class="result-value" id="resDuration">—</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Video Selesai</div>
+          <div class="result-value" style="color:#059669;">4/4</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Status Kirim</div>
+          <div class="result-value" id="resSendStatus" style="color:#059669;font-size:15px;">✅ Terkirim</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ok" id="btnOK">✓ OK — Selesai</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+  INIT — ambil data siswa dari /api/me
+============================================================ */
+let STUDENT_ID   = '';
+let STUDENT_NAME = '';
+
+(async function initSiswa() {
+  try {
+    const res  = await fetch('/api/me');
+    if (!res.ok) { window.location.href = '/'; return; }
+    const user = await res.json();
+    STUDENT_ID   = String(user.id);
+    STUDENT_NAME = user.name;
+    document.getElementById('studentNameDisplay').textContent = user.name;
+    document.getElementById('avatarInitial').textContent      = user.name.charAt(0).toUpperCase();
+  } catch {
+    window.location.href = '/';
+  }
+})();
+
+/* ============================================================
+  LOGOUT
+============================================================ */
+document.getElementById('btnLogout').addEventListener('click', () => {
+  fetch('/api/logout', { method: 'POST' })
+    .finally(() => { window.location.href = '/'; });
+});
+
+/* ============================================================
+  BROADCAST CHANNEL
+============================================================ */
+const ch = new BroadcastChannel('edmotion-vark');
+function emitCh(event, data) { ch.postMessage({ event, data, ts: Date.now() }); }
+
+/* ============================================================
+  STATE
+============================================================ */
+const VARK_SEQ   = ['visual','auditory','reading','kinesthetic'];
+const VIDEO_MAP  = {
+  visual:      'videos/visual.mp4',
+  auditory:    'videos/auditory.mp4',
+  reading:     'videos/reading.mp4',
+  kinesthetic: 'videos/kinesthetic.mp4',
+};
+const VARK_COLORS = { visual:'#3b82f6', auditory:'#06b6d4', reading:'#8b5cf6', kinesthetic:'#f59e0b' };
+
+let lastExpression = "";
+let startTime      = Date.now();
+let sequencing     = false;
+let sessionPaused  = false;
+let noFacePaused   = false;
+let seqIndex          = 0;
+let sessionStartTime  = null;
+let currentVarkType   = null;
+let currentVideoStart = null;
+let videoEmoCount     = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+const videoRecords    = [];
+let emitIntervalId    = null;
+
+let camMedia     = null;
+let camRaf       = null;
+let modelsLoaded = false;
+let latestScores = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+let latestExpr   = '🙂 Normal';
+let faceDetected = false;
+let noFaceFrames = 0;
+const NO_FACE_THRESHOLD = 15;
+
+let watchdogId = null;
+function startWatchdog() {
+  if (watchdogId) return;
+  watchdogId = setInterval(() => {
+    if (!sequencing) return;
+    const vid = document.getElementById('varkVideo');
+    if (!vid) return;
+    if (noFacePaused && !sessionPaused && !vid.paused && !vid.ended) {
+      vid.pause();
+    }
+  }, 200);
+}
+function stopWatchdog() {
+  clearInterval(watchdogId);
+  watchdogId = null;
+}
+
+const noFaceOverlay = document.getElementById('noFaceOverlay');
+const noFaceTimer   = document.getElementById('noFaceTimer');
+const landmarkBadge = document.getElementById('landmarkBadge');
+
+document.getElementById('pausePlayBtn').addEventListener('click', () => {
+  const vid = document.getElementById('varkVideo');
+  if (vid && vid.paused && !noFacePaused) {
+    vid.play().catch(e => console.warn('play gagal:', e));
+  }
+});
+
+/* ============================================================
+  PROGRESS UI
+============================================================ */
+function updateProgress(currentType, doneList) {
+  VARK_SEQ.forEach(t => {
+    const step       = document.getElementById('step-' + t);
+    const statusEl   = document.getElementById('status-' + t);
+    const cardEl     = document.getElementById('card-' + t);
+    const cardStatus = document.getElementById('cardstatus-' + t);
+    step.className = 'prog-step';
+    cardEl.classList.remove('active-card');
+
+    if (doneList.includes(t)) {
+      step.classList.add('done');
+      document.getElementById('icon-' + t).textContent = '✅';
+      statusEl.textContent = 'Selesai'; statusEl.className = 'prog-label-status done';
+      cardStatus.textContent = '✅ Selesai'; cardStatus.className = 'vc-status done';
+    } else if (t === currentType) {
+      step.classList.add('active');
+      statusEl.textContent = '▶ Berjalan'; statusEl.className = 'prog-label-status running';
+      cardEl.classList.add('active-card');
+      cardStatus.textContent = '▶ Berjalan'; cardStatus.className = 'vc-status running';
+    } else {
+      statusEl.textContent = 'Menunggu'; statusEl.className = 'prog-label-status';
+      cardStatus.textContent = 'Menunggu'; cardStatus.className = 'vc-status';
+    }
+  });
+  document.getElementById('progressBarFill').style.width =
+    (doneList.length / VARK_SEQ.length * 100) + '%';
+}
+
+/* ============================================================
+  FACE API
+============================================================ */
+const camStreamEl = document.getElementById('camStream');
+const camCanvasEl = document.getElementById('camCanvas');
+const camCtx      = camCanvasEl.getContext('2d');
+const camEmEl     = document.getElementById('camEmotion');
+const camStatusEl = document.getElementById('camStatus');
+const camFacesEl  = document.getElementById('camFaces');
+
+function updateBars(scores) {
+  const total = Object.values(scores).reduce((a,b)=>a+b,0)||1;
+  ['Normal','Bosan','Bingung','Menguap'].forEach(k => {
+    const p = Math.round(scores[k]/total*100);
+    document.getElementById('bar'+k).style.width = p+'%';
+    document.getElementById('pct'+k).textContent = p+'%';
+  });
+}
+
+function exprKey(expr) {
+  if (!expr) return 'Normal';
+  if (expr.includes('Menguap')) return 'Menguap';
+  if (expr.includes('Bosan'))   return 'Bosan';
+  if (expr.includes('Bingung')) return 'Bingung';
+  return 'Normal';
+}
+
+async function loadModels() {
+  if (modelsLoaded) return true;
+  camStatusEl.textContent = 'Memuat model AI...';
+  camEmEl.textContent     = '⏳ Memuat model...';
+  try {
+    const M = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(M),
+      faceapi.nets.faceLandmark68Net.loadFromUri(M),
+      faceapi.nets.faceExpressionNet.loadFromUri(M),
+    ]);
+    modelsLoaded = true;
+    camStatusEl.textContent = 'Model siap ✓';
+    return true;
+  } catch(e) {
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('./models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
+        faceapi.nets.faceExpressionNet.loadFromUri('./models'),
+      ]);
+      modelsLoaded = true;
+      camStatusEl.textContent = 'Model lokal ✓';
+      return true;
+    } catch(e2) {
+      camStatusEl.textContent = 'Model gagal — simulasi';
+      return false;
+    }
+  }
+}
+
+function simulateEmotion() {
+  const opts = ['🙂 Normal','😐 Bosan','🤔 Bingung','😮 Menguap'];
+  const w    = [.55,.25,.15,.05];
+  let r=Math.random(), acc=0, idx=0;
+  for(let i=0;i<w.length;i++){acc+=w[i];if(r<acc){idx=i;break;}}
+  latestExpr = opts[idx];
+  camEmEl.textContent = latestExpr;
+  latestScores = {
+    Normal:  +(Math.random()*.6+.3).toFixed(2),
+    Bosan:   +(Math.random()*.3).toFixed(2),
+    Bingung: +(Math.random()*.2).toFixed(2),
+    Menguap: +(Math.random()*.1).toFixed(2),
+  };
+  updateBars(latestScores);
+  camFacesEl.textContent = '1 wajah (simulasi)';
+
+  if (noFaceOverlay && noFaceOverlay.classList.contains('visible')) {
+    noFaceOverlay.classList.remove('visible');
+  }
+  if (noFacePaused) {
+    noFacePaused = false;
+    const vid = document.getElementById('varkVideo');
+    if (sequencing && vid && vid.paused && vid.src) {
+      vid.play().catch(() => {});
+    }
+  }
+
+  if (sequencing && !sessionPaused && !noFacePaused) {
+    videoEmoCount[exprKey(latestExpr)]++;
+  }
+}
+
+function resizeCanvas() {
+  camCanvasEl.width  = camStreamEl.clientWidth  || 288;
+  camCanvasEl.height = camStreamEl.clientHeight || 180;
+}
+
+function pauseVarkVideo() {
+  const vid = document.getElementById('varkVideo');
+  if (!vid || !vid.src) return;
+  if (vid.paused) return;
+  if (vid._playPromise !== undefined) {
+    vid._playPromise.then(() => { vid.pause(); }).catch(() => {});
+  } else {
+    vid.pause();
+  }
+}
+
+/* ============================================================
+  SAVE DETECTION — kirim ke /api/detection
+============================================================ */
+function saveDetection(payload) {
+  fetch('/api/detection', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(err => console.warn('saveDetection error:', err));
+}
+
+async function faceDetectLoop() {
+  if (sessionPaused) {
+    camRaf = null;
+    return;
+  }
+
+  if (!camMedia || camStreamEl.paused || camStreamEl.ended) {
+    camRaf = requestAnimationFrame(faceDetectLoop);
+    return;
+  }
+
+  try {
+    const dets = await faceapi
+      .detectAllFaces(camStreamEl, new faceapi.TinyFaceDetectorOptions({ inputSize:224 }))
+      .withFaceLandmarks()
+      .withFaceExpressions();
+
+    resizeCanvas();
+    camCtx.clearRect(0, 0, camCanvasEl.width, camCanvasEl.height);
+    const disp    = { width: camCanvasEl.width, height: camCanvasEl.height };
+    const resized = faceapi.resizeResults(dets, disp);
+    faceapi.draw.drawDetections(camCanvasEl, resized);
+    faceapi.draw.drawFaceLandmarks(camCanvasEl, resized);
+    camFacesEl.textContent = resized.length + ' wajah';
+
+    if (resized.length > 0) {
+      noFaceFrames = 0;
+
+      if (landmarkBadge) {
+        landmarkBadge.textContent = '✦ Landmark Aktif';
+        landmarkBadge.className   = 'cam-landmark-badge detected';
+      }
+
+      if (noFacePaused) {
+        noFacePaused = false;
+        faceDetected = true;
+        noFaceFrames = 0;
+        if (noFaceOverlay) noFaceOverlay.classList.remove('visible');
+        document.getElementById('camLiveDot').classList.remove('paused');
+        document.getElementById('statusText').textContent =
+          'Sesi berjalan — data emosi dikirim ke admin secara real-time...';
+        const vid = document.getElementById('varkVideo');
+        if (sequencing && vid && vid.paused && vid.src && !sessionPaused) {
+          vid._playPromise = vid.play();
+          if (vid._playPromise) {
+            vid._playPromise
+              .then(() => { vid._playPromise = undefined; })
+              .catch(() => { vid._playPromise = undefined; });
+          }
+        }
+      } else if (!faceDetected) {
+        faceDetected = true;
+        if (noFaceOverlay) noFaceOverlay.classList.remove('visible');
+      }
+
+      const { expressions, landmarks, detection } = resized[0];
+      const { neutral, sad, fearful, surprised }  = expressions;
+      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const mouth     = landmarks.getMouth();
+      const leftEye   = landmarks.getLeftEye();
+      const rightEye  = landmarks.getRightEye();
+      const leftBrow  = landmarks.getLeftEyeBrow();
+      const rightBrow = landmarks.getRightEyeBrow();
+      const mouthOpen  = dist(mouth[14], mouth[18]);
+      const mouthWidth = dist(mouth[0],  mouth[6]);
+      const mouthRatio = mouthOpen / mouthWidth;
+      const leftEyeOpen  = dist(leftEye[1],  leftEye[5]);
+      const rightEyeOpen = dist(rightEye[1], rightEye[5]);
+      const eyeOpenRatio = (leftEyeOpen + rightEyeOpen) / 2;
+      const avgBrowEyeDist = (dist(leftBrow[2], leftEye[4]) + dist(rightBrow[2], rightEye[4])) / 2;
+      const browRatio  = avgBrowEyeDist / mouthWidth;
+      const isGlasses  = eyeOpenRatio < 3.0 || browRatio < 0.22;
+      const mouthThreshold = isGlasses ? 0.30 : 0.35;
+      const browThreshold  = isGlasses ? 0.23 : 0.25;
+
+      let cond = '🙂 Normal';
+      if (mouthRatio > mouthThreshold && surprised > 0.3) {
+        cond = '😮 Menguap';
+      } else if (neutral > 0.6 && mouthRatio < 0.25) {
+        cond = '😐 Bosan';
+      } else if ((sad > 0.20 || fearful > 0.20 || browRatio < browThreshold) && mouthRatio < 0.35 && neutral < 0.7) {
+        cond = '🤔 Bingung';
+      }
+
+      latestScores = {
+        Normal:  +(neutral).toFixed(3),
+        Bosan:   +(neutral > 0.6 && mouthRatio < 0.25 ? neutral : 0).toFixed(3),
+        Bingung: +((sad + fearful) / 2).toFixed(3),
+        Menguap: +(mouthRatio > mouthThreshold ? mouthRatio : 0).toFixed(3),
+      };
+      updateBars(latestScores);
+
+      const box    = detection.box;
+      const labelX = box.x;
+      const labelY = box.y > 22 ? box.y - 8 : box.y + box.height + 18;
+      camCtx.font        = 'bold 13px Arial';
+      camCtx.lineWidth   = 3;
+      camCtx.strokeStyle = 'rgba(0,0,0,0.65)';
+      camCtx.strokeText(cond, labelX, labelY);
+      camCtx.fillStyle   = cond.includes('Menguap') ? '#fbbf24'
+                        : cond.includes('Bosan')   ? '#60a5fa'
+                        : cond.includes('Bingung') ? '#f87171'
+                        : '#4ade80';
+      camCtx.fillText(cond, labelX, labelY);
+
+      latestExpr = cond;
+      camEmEl.textContent     = cond;
+      camStatusEl.textContent = 'Aktif — ' + (currentVarkType || '').toUpperCase();
+
+      const now = Date.now();
+      if (cond !== lastExpression) {
+        const finalDuration = (now - startTime) / 1000;
+        if (lastExpression !== "" && finalDuration >= 1.5) {
+          saveDetection({
+            student_id:     STUDENT_ID,
+            student_name:   STUDENT_NAME,
+          
+            vark_type:      currentVarkType,
+            expression:     lastExpression,
+            duration:       Number(finalDuration.toFixed(2)),
+            normal_score:   latestScores.Normal,
+            bosan_score:    latestScores.Bosan,
+            bingung_score:  latestScores.Bingung,
+            menguap_score:  latestScores.Menguap,
+            face_detection: true,
+            waktu:          new Date(startTime).toISOString()
+          });
+        }
+        lastExpression = cond;
+        startTime = now;
+      }
+
+      if (sequencing && !sessionPaused && !noFacePaused) {
+        videoEmoCount[exprKey(cond)]++;
+      }
+
+    } else {
+      noFaceFrames++;
+      camFacesEl.textContent = '0 wajah';
+
+      if (landmarkBadge) {
+        landmarkBadge.textContent = '⊘ Tidak Terdeteksi';
+        landmarkBadge.className   = 'cam-landmark-badge';
+      }
+
+      if (noFaceFrames >= NO_FACE_THRESHOLD && !noFacePaused) {
+        faceDetected = false;
+        noFacePaused = true;
+        if (noFaceOverlay) noFaceOverlay.classList.add('visible');
+        if (noFaceTimer)   noFaceTimer.textContent = '⏸ Video dijeda — tampilkan wajah';
+        pauseVarkVideo();
+        camEmEl.textContent = '👤 Arahkan wajah ke kamera';
+        document.getElementById('camLiveDot').classList.add('paused');
+        document.getElementById('statusText').textContent =
+          '⏸ Dijeda — wajah tidak terdeteksi, tampilkan wajah untuk melanjutkan';
+      }
+    }
+  } catch(e) {
+    simulateEmotion();
+  }
+
+  camRaf = requestAnimationFrame(faceDetectLoop);
+}
+
+/* ============================================================
+  OPEN / CLOSE CAMERA
+============================================================ */
+async function openCamera() {
+  document.getElementById('camPopup').classList.add('open');
+  const ok = await loadModels();
+  try {
+    camMedia = await navigator.mediaDevices.getUserMedia({
+      video: { width:288, height:180, facingMode:'user' }
+    });
+    camStreamEl.srcObject = camMedia;
+    await new Promise(r => { camStreamEl.onloadedmetadata = r; });
+    camStreamEl.play();
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    camStatusEl.textContent = ok ? 'Aktif — Face-API' : 'Aktif — Simulasi';
+    if (ok) {
+      camStreamEl.addEventListener('play', () => {
+        camRaf = requestAnimationFrame(faceDetectLoop);
+      }, { once: true });
+    } else {
+      (function simLoop() {
+        simulateEmotion();
+        camRaf = setTimeout(simLoop, 800);
+      })();
+    }
+  } catch(err) {
+    camStatusEl.textContent = 'Kamera tidak tersedia — simulasi';
+    (function simLoop() {
+      simulateEmotion();
+      camRaf = setTimeout(simLoop, 800);
+    })();
+  }
+}
+
+function closeCamera() {
+  document.getElementById('camPopup').classList.remove('open');
+  if (camRaf) { cancelAnimationFrame(camRaf); clearTimeout(camRaf); camRaf = null; }
+  if (camMedia) { camMedia.getTracks().forEach(t => t.stop()); camMedia = null; }
+  camCtx.clearRect(0, 0, camCanvasEl.width, camCanvasEl.height);
+  faceDetected = false; noFaceFrames = 0;
+  noFacePaused = false;
+  stopWatchdog();
+  if (noFaceOverlay) noFaceOverlay.classList.remove('visible');
+  if (landmarkBadge) {
+    landmarkBadge.textContent = '⬡ Landmark';
+    landmarkBadge.className   = 'cam-landmark-badge';
+  }
+  window.removeEventListener('resize', resizeCanvas);
+}
+
+document.getElementById('camCloseBtn').addEventListener('click', () => {
+  document.getElementById('camPopup').classList.remove('open');
+});
+
+/* ============================================================
+  DRAG — camera popup
+============================================================ */
+(function initDrag() {
+  const popup   = document.getElementById('camPopup');
+  const handle  = popup.querySelector('.cam-topbar');
+  let dragging  = false;
+  let ox = 0, oy = 0;
+
+  function startDrag(cx, cy) {
+    const rect = popup.getBoundingClientRect();
+    popup.style.right  = 'auto';
+    popup.style.bottom = 'auto';
+    popup.style.left   = rect.left + 'px';
+    popup.style.top    = rect.top  + 'px';
+    ox = cx - rect.left;
+    oy = cy - rect.top;
+    dragging = true;
+    popup.classList.add('dragging');
+  }
+
+  function moveDrag(cx, cy) {
+    if (!dragging) return;
+    const maxX = window.innerWidth  - popup.offsetWidth;
+    const maxY = window.innerHeight - popup.offsetHeight;
+    popup.style.left = Math.min(Math.max(0, cx - ox), maxX) + 'px';
+    popup.style.top  = Math.min(Math.max(0, cy - oy), maxY) + 'px';
+  }
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    popup.classList.remove('dragging');
+  }
+
+  handle.addEventListener('mousedown', e => {
+    if (e.target.closest('.cam-close-btn')) return;
+    e.preventDefault();
+    startDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+  document.addEventListener('mouseup',   endDrag);
+
+  handle.addEventListener('touchstart', e => {
+    if (e.target.closest('.cam-close-btn')) return;
+    const t = e.touches[0];
+    startDrag(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    moveDrag(t.clientX, t.clientY);
+  }, { passive: false });
+  document.addEventListener('touchend', endDrag);
+})();
+
+/* ============================================================
+  EMIT INTERVAL
+============================================================ */
+function startEmit() {
+  if (emitIntervalId) return;
+  emitIntervalId = setInterval(() => {
+    if (!sequencing || sessionPaused || noFacePaused) return;
+    const payload = {
+      student_id:    STUDENT_ID,
+      student_name:  STUDENT_NAME,
+      vark_type:     currentVarkType,
+      expression:    latestExpr,
+      normal_score:  latestScores.Normal,
+      bosan_score:   latestScores.Bosan,
+      bingung_score: latestScores.Bingung,
+      menguap_score: latestScores.Menguap,
+      face_detection: faceDetected,
+      duration: Math.round((Date.now() - currentVideoStart) / 1000),
+      waktu: new Date().toISOString()
+    };
+    emitCh('emotion-data', payload);
+  }, 1000);
+}
+function stopEmit() { clearInterval(emitIntervalId); emitIntervalId = null; }
+
+/* ============================================================
+  VIDEO
+============================================================ */
+function loadAndPlayVideo(type) {
+  const vid      = document.getElementById('varkVideo');
+  const srcEl    = document.getElementById('varkVideoSrc');
+  const panel    = document.getElementById('videoPanel');
+  const pauseOvl = document.getElementById('pauseOverlay');
+  const liveDot  = document.getElementById('camLiveDot');
+
+  const badge = document.getElementById('videoBadge');
+  badge.textContent       = type.toUpperCase();
+  badge.style.color       = VARK_COLORS[type];
+  badge.style.background  = VARK_COLORS[type] + '14';
+  badge.style.borderColor = VARK_COLORS[type] + '44';
+  document.getElementById('videoTitle').textContent =
+    'Video ' + type.charAt(0).toUpperCase() + type.slice(1);
+  document.getElementById('camBadge').textContent = type.toUpperCase();
+  panel.style.display = 'block';
+  srcEl.src = VIDEO_MAP[type];
+  vid._playPromise = undefined;
+  vid.load();
+  vid.onpause = vid.onplay = vid.onended = null;
+
+  vid.onpause = () => {
+    if (!sequencing) return;
+    if (noFacePaused) {
+      liveDot.classList.add('paused');
+      return;
+    }
+    sessionPaused = true;
+    liveDot.classList.add('paused');
+    if (camRaf) { cancelAnimationFrame(camRaf); camRaf = null; }
+    camCtx.clearRect(0, 0, camCanvasEl.width, camCanvasEl.height);
+    camEmEl.textContent     = '⏸ Deteksi dihentikan';
+    camStatusEl.textContent = 'Dijeda';
+    if (landmarkBadge) {
+      landmarkBadge.textContent = '⬡ Landmark';
+      landmarkBadge.className   = 'cam-landmark-badge';
+    }
+    if (!noFaceOverlay || !noFaceOverlay.classList.contains('visible')) {
+      pauseOvl.classList.add('show');
+    }
+    document.getElementById('statusText').textContent =
+      '⏸ Dijeda — klik tombol play untuk melanjutkan';
+    emitCh('session-paused', { studentId: STUDENT_ID, studentName: STUDENT_NAME, varkType: type });
+  };
+
+  vid.onplay = () => {
+    if (!sequencing) return;
+    if (noFacePaused) {
+      vid.pause();
+      return;
+    }
+    pauseOvl.classList.remove('show');
+    if (noFaceOverlay) noFaceOverlay.classList.remove('visible');
+    liveDot.classList.remove('paused');
+    sessionPaused = false;
+    noFaceFrames  = 0;
+    document.getElementById('statusText').textContent =
+      'Sesi berjalan — data emosi dikirim ke admin secara real-time...';
+    if (!camRaf && camMedia) {
+      camRaf = requestAnimationFrame(faceDetectLoop);
+    }
+    emitCh('session-resumed', {
+      studentId: STUDENT_ID, studentName: STUDENT_NAME, varkType: type
+    });
+  };
+
+vid.onended = () => {
+  if (noFaceOverlay) noFaceOverlay.classList.remove('visible');
+  noFacePaused  = false;
+  sessionPaused = false;
+
+  // ✅ FIX: Paksa simpan deteksi terakhir video ini ke DB
+  // supaya setiap video punya minimal 1 record di DB
+  const finalDuration = (Date.now() - startTime) / 1000;
+  if (lastExpression !== "" && finalDuration >= 1.5) {
+    saveDetection({
+      student_id:     STUDENT_ID,
+      student_name:   STUDENT_NAME,
+      vark_type:      currentVarkType,
+      expression:     lastExpression,
+      duration:       Number(finalDuration.toFixed(2)),
+      normal_score:   latestScores.Normal,
+      bosan_score:    latestScores.Bosan,
+      bingung_score:  latestScores.Bingung,
+      menguap_score:  latestScores.Menguap,
+      face_detection: true,
+      waktu:          new Date(startTime).toISOString()
+    });
+    // Reset agar finishSession tidak kirim duplikat
+    lastExpression = "";
+    startTime = Date.now();
+  }
+
+  recordVideoEnd(type);
+  emitCh('video-complete', {
+    studentId: STUDENT_ID, studentName: STUDENT_NAME,
+    varkType: type, record: videoRecords[videoRecords.length - 1]
+  });
+  seqIndex++;
+  const doneSoFar = VARK_SEQ.slice(0, seqIndex);
+  updateProgress(VARK_SEQ[seqIndex] || null, doneSoFar);
+  if (seqIndex < VARK_SEQ.length) {
+    currentVarkType   = VARK_SEQ[seqIndex];
+    currentVideoStart = Date.now();
+    videoEmoCount     = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+    loadAndPlayVideo(currentVarkType);
+  } else {
+    finishSession();
+  }
+};
+
+  const tryPlay = () => {
+    vid._playPromise = vid.play();
+    if (vid._playPromise) {
+      vid._playPromise
+        .then(() => { vid._playPromise = undefined; })
+        .catch(() => { vid._playPromise = undefined; setTimeout(tryPlay, 400); });
+    }
+  };
+  setTimeout(tryPlay, 150);
+}
+
+/* ============================================================
+  HELPERS
+============================================================ */
+function resetVideoTracker() {
+  currentVideoStart = Date.now();
+  videoEmoCount     = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+}
+
+function recordVideoEnd(type) {
+  const dur   = Math.round((Date.now() - (currentVideoStart || Date.now())) / 1000);
+  const total = Object.values(videoEmoCount).reduce((a,b) => a+b, 0) || 1;
+  const dom   = Object.entries(videoEmoCount).sort((a,b) => b[1]-a[1])[0][0];
+  const pct   = k => Math.round(videoEmoCount[k] / total * 100);
+  videoRecords.push({
+    varkType: type, durasi: dur, dominant: dom, counts: {...videoEmoCount},
+    pctNormal: pct('Normal'), pctBosan: pct('Bosan'),
+    pctBingung: pct('Bingung'), pctMenguap: pct('Menguap'),
+  });
+}
+
+function buildSummary() {
+  const dur = videoRecords.reduce((a,r) => a + r.durasi, 0);
+  const all  = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+  videoRecords.forEach(r => Object.keys(all).forEach(k => { all[k] += r.counts[k]; }));
+  const total = Object.values(all).reduce((a,b) => a+b, 0) || 1;
+  const dom   = Object.entries(all).sort((a,b) => b[1]-a[1])[0][0];
+  return {
+    studentId: STUDENT_ID, studentName: STUDENT_NAME,
+    sessionStart: sessionStartTime, sessionEnd: Date.now(),
+    totalDurasi: dur, dominant: dom,
+    overallPct: {
+      Normal:  Math.round(all.Normal/total*100),
+      Bosan:   Math.round(all.Bosan/total*100),
+      Bingung: Math.round(all.Bingung/total*100),
+      Menguap: Math.round(all.Menguap/total*100),
+    },
+    videos: videoRecords, timestamp: Date.now(),
+  };
+}
+
+/* ============================================================
+  FINISH SESSION
+  ✅ FIX: Kirim summary ke server via POST /api/session-summary/save
+  SEBELUM emit ke BroadcastChannel.
+  Ini yang memastikan data tersimpan di server dan tidak tercampur
+  antar siswa, serta admin bisa menerima via SSE dari server.
+============================================================ */
+async function finishSession() {
+  sequencing    = false;
+  sessionPaused = false;
+  noFacePaused  = false;
+  stopEmit();
+  stopWatchdog();
+
+  const summary = buildSummary();
+
+  // ✅ KIRIM summary ke server — server akan broadcast ke admin via SSE
+  let sendOk = false;
+  try {
+    const resp = await fetch('/api/session-summary/save', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(summary)
+    });
+    sendOk = resp.ok;
+  } catch(e) {
+    console.warn('Gagal kirim summary ke server:', e);
+  }
+
+  // Tetap emit ke BroadcastChannel sebagai fallback (jika admin buka di tab sama)
+  emitCh('session-summary', summary);
+  emitCh('session-end', {
+    studentId: STUDENT_ID, studentName: STUDENT_NAME, timestamp: Date.now()
+  });
+
+  document.getElementById('statusBar').classList.remove('show');
+  closeCamera();
+
+  // Update status kirim di modal
+  const sendStatusEl = document.getElementById('resSendStatus');
+  if (sendStatusEl) {
+    sendStatusEl.textContent = sendOk ? '✅ Terkirim' : '⚠️ Cek koneksi';
+    sendStatusEl.style.color = sendOk ? '#059669' : '#d97706';
+  }
+
+  const emojiMap = { Normal:'🙂', Bosan:'😐', Bingung:'🤔', Menguap:'😮' };
+  document.getElementById('resEmotion').textContent =
+    (emojiMap[summary.dominant] || '') + ' ' + summary.dominant;
+  document.getElementById('resDuration').textContent = summary.totalDurasi + 's';
+
+  document.getElementById('modalEnd').classList.add('open');
+}
+
+/* ============================================================
+  START SESSION
+  ✅ FIX: Reset summary lama siswa ini di server sebelum mulai,
+  agar data yang tampil di admin selalu data sesi terbaru.
+============================================================ */
+async function startSession() {
+  sequencing       = true;
+  sessionPaused    = false;
+  noFacePaused     = false;
+  seqIndex         = 0;
+  sessionStartTime = Date.now();
+  videoRecords.length = 0;
+  currentVarkType     = VARK_SEQ[0];
+  faceDetected        = false;
+  noFaceFrames        = 0;
+  lastExpression      = "";
+  startTime           = Date.now();
+  resetVideoTracker();
+
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('statusBar').classList.add('show');
+  updateProgress(VARK_SEQ[0], []);
+
+  // ✅ FIX: AWAIT reset dulu, baru mulai sesi
+  try {
+    await fetch('/api/session-summary/reset-student', {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch(e) {
+    console.warn('Gagal reset summary lama:', e);
+  }
+
+  emitCh('session-start', {
+    studentId: STUDENT_ID, studentName: STUDENT_NAME, timestamp: Date.now()
+  });
+
+  openCamera().then(() => { startEmit(); startWatchdog(); loadAndPlayVideo(VARK_SEQ[0]); });
+}
+
+/* ============================================================
+  MODALS
+============================================================ */
+document.getElementById('btnStart').addEventListener('click', () => {
+  document.getElementById('modalStart').classList.add('open');
+});
+document.getElementById('btnCancelStart').addEventListener('click', () => {
+  document.getElementById('modalStart').classList.remove('open');
+});
+document.getElementById('btnConfirmStart').addEventListener('click', () => {
+  document.getElementById('modalStart').classList.remove('open');
+  startSession();
+});
+document.getElementById('btnOK').addEventListener('click', () => {
+  document.getElementById('modalEnd').classList.remove('open');
+  window.location.reload();
+});
+</script>
+</body>
+</html>

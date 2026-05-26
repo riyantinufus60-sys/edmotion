@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EdMotion — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:      #080f1c;
+            --surface: #0d1829;
+            --card:    #111e30;
+            --border:  rgba(255,255,255,0.06);
+            --muted:   #64748b;
+            --text:    #e2eaf6;
+            --accent:  #6ee7b7;
+            --blue:    #60a5fa;
+            --red:     #f87171;
+            --radius:  14px;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        /* ── AMBIENT GLOW ── */
+        .glow {
+            position: fixed; border-radius: 50%;
+            filter: blur(120px); pointer-events: none; z-index: 0;
+        }
+        .glow-1 {
+            width: 500px; height: 500px; top: -160px; right: 100px;
+            background: radial-gradient(circle, rgba(110,231,183,0.07), transparent 70%);
+            animation: g1 22s ease-in-out infinite alternate;
+        }
+        .glow-2 {
+            width: 380px; height: 380px; bottom: -100px; right: -80px;
+            background: radial-gradient(circle, rgba(96,165,250,0.06), transparent 70%);
+            animation: g2 28s ease-in-out infinite alternate;
+        }
+        @keyframes g1 { to { transform: translate(40px, 30px) scale(1.12); } }
+        @keyframes g2 { to { transform: translate(-30px, -20px) scale(1.08); } }
+
+        /* ── Layout ── */
+        .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+        .brand {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 32px;
+        }
+        .logo {
+            width: 42px; height: 42px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--blue));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px; color: #052e1e;
+        }
+        .brand-name { font-size: 16px; font-weight: 700; }
+        .brand-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        nav { display: flex; flex-direction: column; gap: 4px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 10px;
+            color: var(--muted); cursor: pointer;
+            text-decoration: none; font-size: 14px;
+            transition: all 0.18s;
+        }
+        .nav-item:hover  { background: rgba(255,255,255,0.04); color: var(--text); }
+        .nav-item.active {
+            background: rgba(96,165,250,0.1);
+            color: var(--blue);
+            border-left: 3px solid var(--blue);
+            padding-left: 9px;
+        }
+
+        /* ── Sidebar Footer with Dropdown ── */
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            position: relative;
+        }
+        .profile-btn {
+            display: flex; gap: 10px; align-items: center;
+            cursor: pointer; padding: 6px 8px; border-radius: 10px;
+            transition: background 0.18s;
+        }
+        .profile-btn:hover { background: rgba(255,255,255,0.04); }
+        .avatar {
+            width: 38px; height: 38px; border-radius: 9px;
+            background: linear-gradient(180deg, #0ea5b3, #2563eb);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 12px; flex-shrink: 0;
+        }
+        .profile-name  { font-size: 13px; font-weight: 600; }
+        .profile-role  { font-size: 11px; color: var(--muted); }
+
+        /* Dropdown */
+        .user-dropdown {
+            display: none; position: absolute;
+            bottom: calc(100% + 8px); left: 0; right: 0;
+            background: #0d1829;
+            border: 1px solid var(--border);
+            border-radius: 10px; padding: 6px;
+            z-index: 200;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .user-dropdown.open { display: block; }
+        .dropdown-item {
+            margin: 0; padding: 9px 12px;
+            font-size: 13px; color: var(--muted);
+            border-radius: 7px; cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+        }
+        .dropdown-item:hover {
+            background: rgba(248,113,113,0.08);
+            color: var(--red);
+        }
+
+        /* ── Main ── */
+        .main {
+            flex: 1; display: flex;
+            align-items: center; justify-content: center;
+            padding: 60px 40px;
+        }
+
+        .hero {
+            display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+            max-width: 560px;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            border: 1px solid rgba(110,231,183,0.22);
+            background: rgba(110,231,183,0.05);
+            padding: 6px 16px; border-radius: 999px;
+            font-size: 10.5px; font-weight: 600;
+            letter-spacing: 0.13em; text-transform: uppercase;
+            color: var(--accent); margin-bottom: 36px;
+            opacity: 0; animation: fadeUp 0.7s 0.15s ease forwards;
+        }
+        .badge-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent);
+            animation: blink 2.4s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%,100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.3; transform: scale(0.6); }
+        }
+
+        /* Wordmark */
+        .wordmark {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(48px, 6vw, 84px);
+            letter-spacing: -3.5px; line-height: 1;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--blue) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0; animation: fadeUp 0.8s 0.3s ease forwards;
+        }
+
+        /* Divider */
+        .divider {
+            width: 50px; height: 1px;
+            background: linear-gradient(to right, transparent, rgba(110,231,183,0.4), transparent);
+            margin: 0 auto 36px;
+            opacity: 0; animation: fadeUp 0.6s 0.5s ease forwards;
+        }
+
+        /* Description */
+        .description {
+            font-family: 'DM Sans', sans-serif;
+            font-size: clamp(14.5px, 1.6vw, 17px);
+            font-weight: 300; color: var(--muted);
+            line-height: 1.9; letter-spacing: 0.01em;
+            opacity: 0; animation: fadeUp 0.8s 0.65s ease forwards;
+        }
+        .description strong { color: var(--text); font-weight: 400; }
+        .description em     { font-style: normal; color: var(--accent); }
+
+        /* ── Welcome Message ── */
+        .welcome-msg {
+            margin-top: 28px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: clamp(13px, 1.4vw, 15px);
+            font-weight: 300;
+            color: var(--muted);
+            opacity: 0; animation: fadeUp 0.8s 0.85s ease forwards;
+        }
+        .welcome-msg span {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .app { flex-direction: column; }
+            .sidebar {
+                width: 100%; height: auto; position: relative;
+                flex-direction: row; flex-wrap: wrap;
+                border-right: none; border-bottom: 1px solid var(--border);
+                padding: 16px;
+            }
+            .main { padding: 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <div class="app">
+
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo">EM</div>
+                <div>
+                    <div class="brand-name">EdMotion</div>
+                    <div class="brand-sub">Face Expression Detection</div>
+                </div>
+            </div>
+
+            <nav>
+                <div class="nav-item active">🏠 &nbsp;Dashboard</div>
+                <a href="/live-report" class="nav-item">📊 &nbsp;Live Report</a>
+                <a href="/history"     class="nav-item">📜 &nbsp;History</a>
+                <a href="/users"       class="nav-item">👥 &nbsp;Users</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="profile-btn" id="profileBtn">
+                    <div class="avatar" id="avatarInitial">EM</div>
+                    <div>
+                        <div class="profile-name" id="profileName">Loading…</div>
+                        <div class="profile-role">Admin · Panel</div>
+                    </div>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <p class="dropdown-item" id="logoutBtn">🚪 &nbsp;Logout</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Main ── -->
+        <main class="main">
+            <div class="hero">
+                <div class="badge">
+                    <span class="badge-dot"></span>
+                    Face Expression Detection
+                </div>
+
+                <h1 class="wordmark">EdMotion</h1>
+
+                <div class="divider"></div>
+
+                <p class="description">
+                    EdMotion is an <strong>intelligent web-based monitoring platform</strong>
+                    designed to analyze student <em>affective states</em> in real time
+                    through <strong>facial expression recognition</strong> and
+                    <strong>adaptive learning analytics</strong>.
+                </p>
+
+                <p class="welcome-msg">👋 Welcome, <span id="userName">…</span></p>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        /* ── Profile dropdown ── */
+        const profileBtn   = document.getElementById('profileBtn');
+        const userDropdown = document.getElementById('userDropdown');
+
+        profileBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            userDropdown.classList.toggle('open');
+        });
+        document.addEventListener('click', () => userDropdown.classList.remove('open'));
+
+        /* ── Logout → kembali ke halaman utama (index.html) ── */
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            fetch('/api/logout', { method: 'POST' })
+                .finally(() => {
+                    window.location.href = '/';
+                });
+        });
+
+        /* ── Ambil nama user yang sedang login ── */
+        fetch('/api/me')
+            .then(res => {
+                if (!res.ok) throw new Error('unauthorized');
+                return res.json();
+            })
+            .then(data => {
+                const name = data.name || 'Admin';
+                document.getElementById('userName').textContent      = name;
+                document.getElementById('profileName').textContent   = name;
+                document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+            })
+            .catch(() => {
+                /* Jika belum login / session habis, redirect ke login */
+                window.location.href = '/';
+            });
+    </script>
+</body>
+</html>

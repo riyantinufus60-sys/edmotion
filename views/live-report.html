@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EdMotion — Live Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080f1c;--surface:#0d1829;--card:#111e30;
+    --border:rgba(255,255,255,.06);--muted:#64748b;--text:#e2eaf6;
+    --accent:#6ee7b7;--blue:#60a5fa;--red:#f87171;--radius:14px;
+    font-family:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+  .glow{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+  .glow-1{width:500px;height:500px;top:-160px;right:100px;background:radial-gradient(circle,rgba(110,231,183,0.07),transparent 70%);animation:g1 22s ease-in-out infinite alternate}
+  .glow-2{width:380px;height:380px;bottom:-100px;right:-80px;background:radial-gradient(circle,rgba(96,165,250,0.06),transparent 70%);animation:g2 28s ease-in-out infinite alternate}
+  @keyframes g1{to{transform:translate(40px,30px) scale(1.12)}}
+  @keyframes g2{to{transform:translate(-30px,-20px) scale(1.08)}}
+  .app{display:flex;min-height:100vh;position:relative;z-index:1}
+
+  /* ── SIDEBAR ── */
+  .sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+  .logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#6ee7b7,#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#052e1e;flex-shrink:0;}
+  .brand-name{font-size:16px;font-weight:800;line-height:1.1;}
+  .brand-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  nav{display:flex;flex-direction:column;gap:4px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);text-decoration:none;cursor:pointer;font-size:14px;transition:all .18s;}
+  .nav-item:hover{background:rgba(255,255,255,.04);color:#fff;}
+  .nav-item.active{background:rgba(96,165,250,.12);color:var(--blue);border-left:3px solid var(--blue);padding-left:9px;}
+
+  /* ── STUDENTS LIVE BOX ── */
+  .student-box{margin-top:18px;border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:12px;overflow:hidden;}
+  .student-box-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .student-list{max-height:200px;overflow:auto;padding:8px;}
+  .no-students{color:var(--muted);text-align:center;padding:18px 10px;line-height:1.45;font-size:12px;}
+
+  .student-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;border:1px solid transparent;transition:background .15s,border .15s;margin-bottom:4px;cursor:default;}
+  .student-item:hover{background:rgba(255,255,255,.03);}
+  .student-item.is-active{border-color:rgba(110,231,183,.22);background:rgba(110,231,183,.04);}
+
+  .student-item.is-done{cursor:pointer;border:1px solid rgba(96,165,250,.15);background:rgba(96,165,250,.04);}
+  .student-item.is-done:hover{border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.10);}
+  .student-item.is-done.selected{border-color:rgba(96,165,250,.6);background:rgba(96,165,250,.14);box-shadow:0 0 0 2px rgba(96,165,250,.15);}
+
+  .s-avatar{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;flex-shrink:0;}
+  .s-info{min-width:0;flex:1;}
+  .s-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .s-status{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .s-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;opacity:.9;}
+  .s-dot.online{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.08);}
+  .s-dot.offline{background:#64748b;}
+  .s-done-icon{font-size:13px;flex-shrink:0;}
+
+  .done-box{margin-top:10px;border:1px solid rgba(96,165,250,.15);background:rgba(96,165,250,.03);border-radius:12px;overflow:hidden;}
+  .done-box-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(96,165,250,.12);font-weight:700;font-size:12px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;}
+  .done-list{max-height:180px;overflow:auto;padding:8px;}
+  .no-done{color:var(--muted);text-align:center;padding:14px 10px;font-size:12px;line-height:1.45;}
+
+  .sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border);position:relative;}
+  .profile-btn{display:flex;gap:10px;align-items:center;cursor:pointer;padding:6px 8px;border-radius:10px;transition:background .18s;}
+  .profile-btn:hover{background:rgba(255,255,255,.04);}
+  .avatar{width:38px;height:38px;border-radius:9px;background:linear-gradient(180deg,#0ea5b3,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .profile-name{font-size:13px;font-weight:600;}
+  .profile-role{font-size:11px;color:var(--muted);}
+  .user-dropdown{display:none;position:absolute;bottom:calc(100% + 8px);left:0;right:0;background:#0d1829;border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;}
+  .user-dropdown.open{display:block;}
+  .dropdown-item{padding:9px 12px;border-radius:7px;font-size:13px;color:var(--muted);cursor:pointer;transition:background .12s,color .12s;}
+  .dropdown-item:hover{background:rgba(248,113,113,.12);color:var(--red);}
+
+  .main-wrap{flex:1;padding:26px 26px 46px;display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;}
+  .live-badge{display:inline-flex;align-items:center;gap:10px;padding:6px 10px;border-radius:999px;border:1px solid rgba(110,231,183,.22);background:rgba(110,231,183,.06);color:var(--accent);font-weight:700;font-size:12px;}
+  .live-badge.offline{border-color:rgba(255,255,255,.10);background:rgba(255,255,255,.03);color:var(--muted);}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 2.4s ease-in-out infinite;}
+  .live-badge.offline .live-dot{background:var(--muted);animation:none}
+  @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
+  .clock{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);}
+
+  .stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 14px 12px;min-width:0;}
+  .stat-label{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.02em}
+  .stat-value{font-size:26px;font-weight:900;margin-top:10px}
+  .stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+  .stat-card.student-mode{border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.05);}
+
+  .panel-row{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;align-items:stretch;}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:0;}
+  .panel-full{grid-column:1/-1}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);}
+  .panel-title{font-weight:800}
+  .panel-body{padding:14px}
+  .chart-wrap{height:260px}
+  .live-feed{max-height:340px;overflow:auto}
+  .empty-state{padding:26px 14px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.10);border-radius:12px;margin:14px;}
+  .empty-icon{font-size:26px;margin-bottom:6px}
+  .empty-text{font-weight:800;color:var(--text);margin-bottom:4px}
+  .empty-sub{font-size:12px;color:var(--muted)}
+  .feed-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);}
+  .feed-icon{width:34px;height:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+  .feed-info{min-width:0;flex:1}
+  .feed-main{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .feed-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .feed-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
+
+  .tag{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);font-size:11px;font-weight:800;letter-spacing:.02em;white-space:nowrap;}
+  .tag-normal{border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.10);color:#bfdbfe}
+  .tag-bosan{border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.10);color:#fecaca}
+  .tag-bingung{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10);color:#fde68a}
+  .tag-menguap{border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.10);color:#ddd6fe}
+  .tag-visual{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.10);color:#bfdbfe}
+  .tag-auditory{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.10);color:#bbf7d0}
+  .tag-reading{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10);color:#fde68a}
+  .tag-kinesthetic{border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.10);color:#ddd6fe}
+
+  .detail-header{display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .detail-avatar{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;flex-shrink:0;}
+  .detail-name{font-weight:900;font-size:16px;}
+  .detail-id{font-size:11px;color:var(--muted);margin-top:2px;}
+  .completed-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;border:1px solid rgba(110,231,183,.3);background:rgba(110,231,183,.08);color:var(--accent);font-size:11px;font-weight:700;margin-top:6px;}
+
+  .detail-stats{margin-left:auto;display:flex;gap:24px;align-items:center;}
+  .detail-stat{text-align:center;}
+  .detail-stat-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .detail-stat-value{font-size:20px;font-weight:900;}
+
+  .video-table{width:100%;border-collapse:collapse;font-size:12px}
+  .video-table th,.video-table td{border-bottom:1px solid rgba(255,255,255,.06);padding:10px 8px;text-align:left;}
+  .video-table th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  .video-table tbody tr:hover{background:rgba(255,255,255,.02)}
+
+  .detail-empty{padding:40px 20px;text-align:center;color:var(--muted);}
+  .detail-empty-icon{font-size:36px;margin-bottom:12px;}
+  .detail-empty-text{font-weight:800;color:var(--text);font-size:15px;margin-bottom:6px;}
+  .detail-empty-sub{font-size:13px;color:var(--muted);}
+
+  #toast{position:fixed;right:18px;bottom:18px;z-index:999;background:#0d1829;border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.55);opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;max-width:320px;font-size:13px;}
+  #toast.show{opacity:1;transform:translateY(0)}
+  .stat-card.done-highlight{border-color:rgba(110,231,183,.4);background:rgba(110,231,183,.05);transition:all .4s;}
+
+  .filter-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.08);color:var(--blue);font-weight:700;font-size:12px;}
+  .filter-badge-btn{background:rgba(96,165,250,.15);border:none;color:var(--blue);padding:2px 7px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700;transition:background .15s;}
+  .filter-badge-btn:hover{background:rgba(96,165,250,.3);}
+
+  @media(max-width:980px){
+    .app{flex-direction:column}
+    .sidebar{width:100%;height:auto;position:relative;border-right:none;border-bottom:1px solid var(--border);}
+    .panel-row{grid-template-columns:1fr}
+    .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+</style>
+</head>
+<body>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">EM</div>
+      <div>
+        <div class="brand-name">EdMotion</div>
+        <div class="brand-sub">Face Expression Detection</div>
+      </div>
+    </div>
+    <nav>
+      <a href="/dashboard" class="nav-item">🏠&nbsp; Dashboard</a>
+      <div class="nav-item active">📊&nbsp; Live Report</div>
+      <a href="/history" class="nav-item">📜&nbsp; History</a>
+      <a href="/users" class="nav-item">👥&nbsp; Users</a>
+    </nav>
+
+    <div class="student-box">
+      <div class="student-box-head">
+        <span>Students Live</span>
+        <span style="font-family:'DM Mono',monospace" id="studentCount">0</span>
+      </div>
+      <div class="student-list" id="studentList">
+        <div class="no-students">
+          <div style="font-size:22px;margin-bottom:6px;">📡</div>
+          Belum ada siswa<br>bergabung ke sesi
+        </div>
+      </div>
+    </div>
+
+    <div class="done-box">
+      <div class="done-box-head">
+        <span>✅ Siswa Selesai</span>
+        <span style="font-family:'DM Mono',monospace" id="doneCount">0</span>
+      </div>
+      <div class="done-list" id="doneList">
+        <div class="no-done">Belum ada siswa<br>yang menyelesaikan sesi</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="profile-btn" id="profileBtn">
+        <div class="avatar" id="profileAvatar">EM</div>
+        <div>
+          <div class="profile-name" id="profileName">Loading...</div>
+          <div class="profile-role" id="profileRole">—</div>
+        </div>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="dropdown-item" id="logoutBtn">🚪 &nbsp;Logout</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-wrap">
+
+    <div class="topbar">
+      <div class="live-badge offline" id="liveBadge">
+        <span class="live-dot"></span>
+        <span id="liveText">Menunggu siswa...</span>
+      </div>
+      <div class="filter-badge" id="filterBadge" style="display:none;">
+        <span>🔍</span>
+        <span id="filterBadgeText">Semua siswa</span>
+        <button class="filter-badge-btn" onclick="clearStudentFilter()">✕ Semua</button>
+      </div>
+      <div class="clock" id="clockEl">--:--:--</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="stat-label">Siswa Aktif</div><span>🟢</span>
+        </div>
+        <div class="stat-value" id="statActive">0</div>
+        <div class="stat-sub">dalam sesi sekarang</div>
+      </div>
+      <div class="stat-card" id="cardTotalData">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="stat-label" id="labelTotalData">Total Data</div><span>📨</span>
+        </div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-sub" id="subTotalData">data emosi diterima</div>
+      </div>
+      <div class="stat-card" id="cardDominant">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="stat-label" id="labelDominant">Emosi Dominan</div><span>😊</span>
+        </div>
+        <div class="stat-value" id="statDominant" style="font-size:16px;">—</div>
+        <div class="stat-sub" id="subDominant">dari semua siswa</div>
+      </div>
+      <div class="stat-card" id="cardDone">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="stat-label">Siswa Selesai</div><span>✅</span>
+        </div>
+        <div class="stat-value" id="statDone">0</div>
+        <div class="stat-sub" id="subDone">siswa telah selesai</div>
+      </div>
+    </div>
+
+    <div class="panel-row">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title" id="feedPanelTitle">📡 Data Masuk Real-Time</span>
+          <span style="font-size:11px;color:var(--muted);" id="feedCount">0 entri</span>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="live-feed" id="liveFeed">
+            <div class="empty-state">
+              <div class="empty-icon">📶</div>
+              <div class="empty-text">Menunggu data...</div>
+              <div class="empty-sub">Buka dashboard siswa dan klik <strong>Start Sesi</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title" id="chartPanelTitle">📊 Distribusi Emosi Live</span>
+          <button onclick="clearChart()" style="font-size:11px;color:var(--muted);background:none;border:1px solid var(--border);padding:4px 10px;border-radius:8px;cursor:pointer;">Reset</button>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap"><canvas id="emoChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel panel-full" id="studentDetail">
+      <div class="detail-header" id="detailHeader">
+        <div style="width:100%;">
+          <div class="detail-empty">
+            <div class="detail-empty-icon">👆</div>
+            <div class="detail-empty-text">Pilih siswa dari daftar "Siswa Selesai"</div>
+            <div class="detail-empty-sub">Klik nama siswa di sidebar kiri untuk melihat detail sesi mereka</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body" id="detailBody" style="display:none;">
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Detail Per Video VARK</div>
+        <table class="video-table">
+          <thead>
+            <tr>
+              <th>Video</th><th>Durasi</th><th>Dominan</th>
+              <th>Normal</th><th>Bosan</th><th>Bingung</th><th>Menguap</th>
+            </tr>
+          </thead>
+          <tbody id="videoTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+
+/* ══════════════════════════════════════════
+   AUTH CHECK
+══════════════════════════════════════════ */
+(async function checkAuth() {
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (!res.ok) { window.location.href = '/'; return; }
+    const user = await res.json();
+    document.getElementById('profileAvatar').textContent = (user.name || 'U')[0].toUpperCase();
+    document.getElementById('profileName').textContent   = user.name  || 'Admin';
+    document.getElementById('profileRole').textContent   = (user.role || 'admin') + ' · Panel';
+  } catch (e) { window.location.href = '/'; }
+})();
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } catch (e) {}
+  window.location.href = '/';
+});
+
+// ── NORMALISASI EMOSI ──────────────────────────────────────────────────────
+function normalizeEmotion(raw) {
+  const s = String(raw || '').trim().toLowerCase().replace(/[^\w\s]/g, '').trim();
+  if (s.includes('bosan')   || s.includes('bored'))                           return 'Bosan';
+  if (s.includes('bingung') || s.includes('confus') || s.includes('fearful')) return 'Bingung';
+  if (s.includes('menguap') || s.includes('sleep')  || s.includes('surpris')) return 'Menguap';
+  return 'Normal';
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────
+const emoData = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+
+const emoChart = new Chart(document.getElementById('emoChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Normal','Bosan','Bingung','Menguap'],
+    datasets: [{
+      data: [0,0,0,0],
+      backgroundColor: ['#3b82f6','#ef4444','#f59e0b','#a78bfa'],
+      borderColor:     ['#1d4ed8','#b91c1c','#b45309','#7c3aed'],
+      borderWidth: 2,
+      hoverBackgroundColor: ['#60a5fa','#f87171','#fbbf24','#c4b5fd'],
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{ family:'Space Grotesk', size:11 }, padding:12 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct   = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+            return ` ${ctx.label}: ${ctx.parsed} data (${pct}%)`;
+          }
+        }
+      }
+    },
+    animation: { duration:400 }
+  }
+});
+
+function updateChart(data) {
+  const d = data || emoData;
+  emoChart.data.datasets[0].data = [d.Normal, d.Bosan, d.Bingung, d.Menguap];
+  emoChart.update();
+}
+
+function clearChart() {
+  Object.keys(emoData).forEach(k => emoData[k] = 0);
+  updateChart();
+  document.getElementById('statDominant').textContent = '—';
+  document.getElementById('statTotal').textContent = '0';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+const students        = {};
+const allSummaries    = {};
+const studentLiveDurasi = {};
+let totalData         = 0;
+let feedCount         = 0;
+// ✅ allFeedEntries menyimpan SEMUA feed dari semua siswa
+// Setiap entry punya field student_id agar bisa difilter tanpa tercampur
+const allFeedEntries  = [];
+let selectedStudentId = null;
+const ACTIVE_TIMEOUT  = 5000;
+
+const COLORS = ['#1e40af','#059669','#d97706','#7c3aed','#dc2626','#0891b2'];
+function colorFor(id) {
+  let h = 0;
+  for (let c of String(id)) h = (h + c.charCodeAt(0)) % COLORS.length;
+  return COLORS[h];
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────────────────
+function updateClock() {
+  const el = document.getElementById('clockEl');
+  if (el) el.textContent = new Date().toLocaleTimeString('id-ID');
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ══════════════════════════════════════════
+   MODE FILTER PER SISWA
+══════════════════════════════════════════ */
+function getStudentEmoData(summary) {
+  const ed = { Normal:0, Bosan:0, Bingung:0, Menguap:0 };
+  if (!summary || !Array.isArray(summary.videos)) return ed;
+  summary.videos.forEach(v => {
+    if (v.rawCounts) {
+      ed.Normal  += v.rawCounts.Normal  || 0;
+      ed.Bosan   += v.rawCounts.Bosan   || 0;
+      ed.Bingung += v.rawCounts.Bingung || 0;
+      ed.Menguap += v.rawCounts.Menguap || 0;
+    }
+  });
+  return ed;
+}
+
+function applyStudentMode(sid) {
+  const summary = allSummaries[sid];
+  if (!summary) return;
+
+  const name  = summary.studentName || 'Siswa';
+  const ed    = getStudentEmoData(summary);
+  // ✅ Selalu hitung dari videos[].durasi (sama persis dengan tabel Detail Per Video VARK)
+  // Jangan pakai summary.totalDurasi karena bisa beda akibat pembulatan di server
+  const total = (summary.videos || []).reduce((a, v) => a + (v.durasi || 0), 0);
+
+  // --- Filter badge ---
+  const badge = document.getElementById('filterBadge');
+  badge.style.display = '';
+  document.getElementById('filterBadgeText').textContent = '👤 ' + name;
+
+  // --- Stat cards highlight ---
+  document.getElementById('cardTotalData').classList.add('student-mode');
+  document.getElementById('cardDominant').classList.add('student-mode');
+
+  // --- Total Data per siswa ---
+  document.getElementById('labelTotalData').textContent = 'Total Durasi';
+  document.getElementById('statTotal').textContent      = total + 's';
+  document.getElementById('subTotalData').textContent   = 'durasi sesi ' + name;
+
+  // --- Emosi Dominan per siswa ---
+  document.getElementById('labelDominant').textContent = 'Emosi Dominan';
+  document.getElementById('subDominant').textContent   = 'dari sesi ' + name;
+  const emojiMap = { Normal:'🙂', Bosan:'😐', Bingung:'🤔', Menguap:'😮' };
+  const dom = summary.dominant || '—';
+  document.getElementById('statDominant').textContent = (emojiMap[dom] || '') + ' ' + dom;
+
+  // --- Chart per siswa (hanya dari data siswa ini) ---
+  updateChart(ed);
+  document.getElementById('chartPanelTitle').textContent = '📊 Distribusi Emosi — ' + name;
+
+  // --- Feed difilter berdasarkan student_id siswa ini (BUKAN nama, agar tidak campur) ---
+  renderFilteredFeedById(sid, name);
+  document.getElementById('feedPanelTitle').textContent = '📡 Data Masuk — ' + name;
+}
+
+function applyAggregateMode() {
+  document.getElementById('filterBadge').style.display = 'none';
+
+  document.getElementById('cardTotalData').classList.remove('student-mode');
+  document.getElementById('cardDominant').classList.remove('student-mode');
+
+  document.getElementById('labelTotalData').textContent = 'Total Data';
+  document.getElementById('subTotalData').textContent   = 'data emosi diterima';
+  document.getElementById('labelDominant').textContent  = 'Emosi Dominan';
+  document.getElementById('subDominant').textContent    = 'dari semua siswa';
+
+  document.getElementById('statTotal').textContent = totalData;
+  updateDominantStat();
+
+  updateChart();
+  document.getElementById('chartPanelTitle').textContent = '📊 Distribusi Emosi Live';
+
+  renderAllFeed();
+  document.getElementById('feedPanelTitle').textContent = '📡 Data Masuk Real-Time';
+}
+
+function clearStudentFilter() {
+  selectedStudentId = null;
+  applyAggregateMode();
+  renderDoneList();
+  resetDetail();
+}
+
+// ── FEED ──────────────────────────────────────────────────────────────────
+function renderAllFeed() {
+  const feed    = document.getElementById('liveFeed');
+  feedCount     = allFeedEntries.length;
+  document.getElementById('feedCount').textContent = feedCount + ' entri';
+  feed.innerHTML = '';
+  if (allFeedEntries.length === 0) {
+    feed.innerHTML = `<div class="empty-state"><div class="empty-icon">📶</div><div class="empty-text">Menunggu data...</div><div class="empty-sub">Buka dashboard siswa dan klik <strong>Start Sesi</strong></div></div>`;
+    return;
+  }
+  allFeedEntries.forEach(entry => {
+    feed.appendChild(makeFeedEl(entry));
+  });
+}
+
+// ✅ Filter feed berdasarkan student_id — tidak mungkin campur data antar siswa
+function renderFilteredFeedById(sid, name) {
+  const feed    = document.getElementById('liveFeed');
+  const entries = allFeedEntries.filter(e => String(e.student_id) === String(sid));
+  feedCount     = entries.length;
+  document.getElementById('feedCount').textContent = feedCount + ' entri (filter: ' + name + ')';
+  feed.innerHTML = '';
+  if (entries.length === 0) {
+    feed.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Belum ada data untuk ${name}</div><div class="empty-sub">Data akan muncul saat siswa mengirim emosi</div></div>`;
+    return;
+  }
+  entries.forEach(entry => {
+    feed.appendChild(makeFeedEl(entry));
+  });
+}
+
+function makeFeedEl(entry) {
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `<div class="feed-icon">${entry.icon}</div><div class="feed-info"><div class="feed-main">${entry.main}</div><div class="feed-sub">${entry.sub}</div></div><div class="feed-time">${entry.time}</div>`;
+  return item;
+}
+
+function renderFeed(feedArray) {
+  allFeedEntries.length = 0;
+  feedArray.forEach(e => allFeedEntries.push(e));
+  if (selectedStudentId && allSummaries[selectedStudentId]) {
+    renderFilteredFeedById(selectedStudentId, allSummaries[selectedStudentId].studentName || '');
+  } else {
+    renderAllFeed();
+  }
+}
+
+function addFeedEntry(entry) {
+  allFeedEntries.unshift(entry);
+  if (allFeedEntries.length > 50) allFeedEntries.length = 50;
+
+  if (selectedStudentId && allSummaries[selectedStudentId]) {
+    renderFilteredFeedById(selectedStudentId, allSummaries[selectedStudentId].studentName || '');
+  } else {
+    renderAllFeed();
+  }
+}
+
+// ── RENDER SISWA LIVE DI SIDEBAR ───────────────────────────────────────────
+function renderStudentList() {
+  const list = document.getElementById('studentList');
+  const ids  = Object.keys(students);
+  document.getElementById('studentCount').textContent = ids.length;
+  if (ids.length === 0) {
+    list.innerHTML = `<div class="no-students"><div style="font-size:22px;margin-bottom:6px;">📡</div>Belum ada siswa<br>bergabung ke sesi</div>`;
+    return;
+  }
+  list.innerHTML = ids.map(id => {
+    const s = students[id], color = colorFor(id), name = s.name || 'Siswa';
+    return `<div class="student-item ${s.active?'is-active':''}">
+      <div class="s-avatar" style="background:${color}">${(name[0]||'S').toUpperCase()}</div>
+      <div class="s-info">
+        <div class="s-name">${name}</div>
+        <div class="s-status">${s.lastEmotion||'—'} · ${s.varkType||'—'}</div>
+      </div>
+      <div class="s-dot ${s.active?'online':'offline'}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER SISWA SELESAI DI SIDEBAR ─────────────────────────
+function renderDoneList() {
+  const list = document.getElementById('doneList');
+  const ids  = Object.keys(allSummaries);
+  document.getElementById('doneCount').textContent = ids.length;
+  document.getElementById('statDone').textContent  = ids.length;
+
+  if (ids.length === 0) {
+    list.innerHTML = `<div class="no-done">Belum ada siswa<br>yang menyelesaikan sesi</div>`;
+    document.getElementById('subDone').textContent = 'siswa telah selesai';
+    return;
+  }
+
+  list.innerHTML = ids.map(id => {
+    const s     = allSummaries[id];
+    const color = colorFor(id);
+    const name  = s.studentName || 'Siswa';
+    const isSelected = id === selectedStudentId;
+    return `<div class="student-item is-done ${isSelected?'selected':''}" onclick="selectStudent('${id}')">
+      <div class="s-avatar" style="background:${color}">${(name[0]||'S').toUpperCase()}</div>
+      <div class="s-info">
+        <div class="s-name">${name}</div>
+        <div class="s-status">ID: ${id} · ${s.dominant||'—'}</div>
+      </div>
+      <span class="s-done-icon">✅</span>
+    </div>`;
+  }).join('');
+}
+
+// ── PILIH SISWA ───────────────────────────────────────────────
+function selectStudent(studentId) {
+  if (!allSummaries[studentId]) return;
+  selectedStudentId = studentId;
+  renderDoneList();
+  renderStudentDetail(allSummaries[studentId]);
+  applyStudentMode(studentId);
+}
+
+// ── RENDER DETAIL SISWA ────────────────────────────────────────
+function renderStudentDetail(data) {
+  const color  = colorFor(data.studentId || 'x');
+  const name   = data.studentName || 'Siswa';
+  const tagMap = { visual:'tag-visual', auditory:'tag-auditory', reading:'tag-reading', kinesthetic:'tag-kinesthetic' };
+  const domMap = { Normal:'tag-normal', Bosan:'tag-bosan', Bingung:'tag-bingung', Menguap:'tag-menguap' };
+  const emojiMap = { Normal:'🙂 Normal', Bosan:'😐 Bosan', Bingung:'🤔 Bingung', Menguap:'😮 Menguap' };
+
+  // ✅ FIX: Hitung totalDurasi dari videos[].durasi, bukan data.totalDurasi
+  // Sehingga angka di stat card atas SELALU sama dengan jumlah baris tabel detail
+  const totalDurasi = (data.videos || []).reduce((a, v) => a + (v.durasi || 0), 0);
+
+  document.getElementById('detailHeader').innerHTML = `
+    <div class="detail-avatar" style="background:${color}">${(name[0]||'S').toUpperCase()}</div>
+    <div>
+      <div class="detail-name">${name}</div>
+      <div class="detail-id">ID: ${data.studentId || '—'}</div>
+      <div class="completed-badge">✅ Sesi Selesai</div>
+    </div>
+    <div class="detail-stats">
+      <div class="detail-stat">
+        <div class="detail-stat-label">Emosi Dominan</div>
+        <div class="detail-stat-value">${emojiMap[data.dominant] || data.dominant || '—'}</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-label">Total Durasi</div>
+        <div class="detail-stat-value">${totalDurasi}s</div>
+      </div>
+    </div>`;
+
+  const tbody = document.getElementById('videoTableBody');
+  if (data.videos && data.videos.length > 0) {
+    tbody.innerHTML = data.videos.map(v => `
+      <tr>
+        <td><span class="tag ${tagMap[v.varkType]||''}">${(v.varkType||'—').toUpperCase()}</span></td>
+        <td><span style="font-family:'DM Mono',monospace">${v.durasi||0}s</span></td>
+        <td><span class="tag ${domMap[v.dominant]||''}">${v.dominant||'—'}</span></td>
+        <td>${v.pctNormal??0}%</td><td>${v.pctBosan??0}%</td>
+        <td>${v.pctBingung??0}%</td><td>${v.pctMenguap??0}%</td>
+      </tr>`).join('');
+  } else {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data video</td></tr>`;
+  }
+
+  document.getElementById('detailBody').style.display = 'block';
+}
+
+// ── RESET DETAIL ─────────────────────────────────────────────
+function resetDetail() {
+  selectedStudentId = null;
+  document.getElementById('detailHeader').innerHTML = `
+    <div style="width:100%;">
+      <div class="detail-empty">
+        <div class="detail-empty-icon">👆</div>
+        <div class="detail-empty-text">Pilih siswa dari daftar "Siswa Selesai"</div>
+        <div class="detail-empty-sub">Klik nama siswa di sidebar kiri untuk melihat detail sesi mereka</div>
+      </div>
+    </div>`;
+  document.getElementById('detailBody').style.display = 'none';
+  renderDoneList();
+  applyAggregateMode();
+}
+
+// ── STATS AGGREGATE ────────────────────────────────────────────────────────
+function updateDominantStat() {
+  const total = Object.values(emoData).reduce((a,b) => a+b, 0);
+  const emojiMap = { Normal:'🙂', Bosan:'😐', Bingung:'🤔', Menguap:'😮' };
+  if (total > 0) {
+    const [key, val] = Object.entries(emoData).reduce((a,b) => a[1]>b[1]?a:b);
+    const pct = Math.round(val / total * 100);
+    document.getElementById('statDominant').textContent = (emojiMap[key]||'') + ' ' + key + ' (' + pct + '%)';
+  } else {
+    document.getElementById('statDominant').textContent = '—';
+  }
+}
+
+function updateStats() {
+  const active = Object.values(students).filter(s => s.active).length;
+  document.getElementById('statActive').textContent = active;
+
+  if (!selectedStudentId) {
+    document.getElementById('statTotal').textContent = totalData;
+    updateDominantStat();
+  }
+
+  const badge    = document.getElementById('liveBadge');
+  const liveText = document.getElementById('liveText');
+  if (active > 0) {
+    badge.className = 'live-badge';
+    liveText.textContent = active + ' siswa aktif';
+  } else {
+    badge.className = 'live-badge offline';
+    liveText.textContent = 'Menunggu siswa...';
+  }
+}
+
+// ── VIDEO SELESAI ──────────────────────────────────────────────────────────
+function bumpDoneVideos(studentName, varkType) {
+  const card = document.getElementById('cardDone');
+  card.classList.add('done-highlight');
+  setTimeout(() => card.classList.remove('done-highlight'), 2000);
+  const vark = (varkType || '').toUpperCase();
+  document.getElementById('subDone').textContent =
+    'Terakhir: ' + (studentName || 'Siswa') + (vark ? ' · ' + vark : '');
+}
+
+// ── SESSION SUMMARY ───────────────────────────────────────────────────────
+function showSessionSummary(data) {
+  if (!data || !data.studentId) return;
+  const sid = String(data.studentId);
+  allSummaries[sid] = data;
+  renderDoneList();
+  showToast('✅ ' + (data.studentName || 'Siswa') + ' telah menyelesaikan sesi!');
+
+  if (!selectedStudentId) {
+    selectStudent(sid);
+  } else if (selectedStudentId === sid) {
+    applyStudentMode(sid);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   APPLY SNAPSHOT
+══════════════════════════════════════════════════════════ */
+function applySnapshot(state) {
+  Object.keys(emoData).forEach(k => emoData[k] = 0);
+  Object.keys(students).forEach(k => delete students[k]);
+
+  totalData = state.totalData || 0;
+  Object.assign(emoData, state.emoData || {});
+
+  const now = Date.now();
+  Object.entries(state.students || {}).forEach(([id, s]) => {
+    students[id] = { ...s, active: (now - (s.lastSeen || 0)) < 5000 };
+    if (typeof s.liveDurasi === 'number') studentLiveDurasi[id] = s.liveDurasi;
+  });
+
+  // ✅ Snapshot feed dari server sudah punya student_id per entry
+  renderFeed(state.feed || []);
+
+  if (selectedStudentId && allSummaries[selectedStudentId]) {
+    applyStudentMode(selectedStudentId);
+  } else {
+    updateChart();
+    updateDominantStat();
+  }
+  renderStudentList();
+  updateStats();
+}
+
+/* ══════════════════════════════════════════
+   SSE
+══════════════════════════════════════════ */
+const eventSource = new EventSource('/api/stream', { withCredentials: true });
+
+eventSource.onmessage = function(e) {
+  let msg;
+  try { msg = JSON.parse(e.data); } catch(err) { return; }
+  const { type, data } = msg;
+
+  if (type === 'snapshot') { applySnapshot(data); return; }
+
+  if (type === 'reset') {
+    applySnapshot({ students:{}, emoData:{Normal:0,Bosan:0,Bingung:0,Menguap:0}, totalData:0, feed:[] });
+    showToast('🔄 State live di-reset oleh admin');
+    return;
+  }
+
+  if (type === 'detection') {
+    const sid      = String(data.student_id   || 'Unknown');
+    const sname    = String(data.student_name || 'Siswa');
+    const emotion  = normalizeEmotion(data.expression);
+    const varkType = String(data.vark_type    || '-');
+
+    if (!students[sid]) {
+      students[sid] = { name:sname, active:true, lastEmotion:emotion, varkType:varkType, lastSeen:Date.now() };
+    } else {
+      Object.assign(students[sid], { name:sname, lastEmotion:emotion, varkType:varkType, active:true, lastSeen:Date.now() });
+    }
+
+    if (data.agg_emoData) Object.assign(emoData, data.agg_emoData);
+    if (typeof data.live_durasi === 'number') studentLiveDurasi[sid] = data.live_durasi;
+    if (typeof data.agg_total === 'number') totalData = data.agg_total;
+
+    // ✅ Pastikan feed entry dari SSE juga membawa student_id
+    if (data.feed) {
+      const feedEntry = { ...data.feed, student_id: sid };
+      addFeedEntry(feedEntry);
+    }
+
+    if (!selectedStudentId) updateChart();
+    renderStudentList();
+    updateStats();
+  }
+
+  if (type === 'session-summary') { showSessionSummary(data); return; }
+
+  if (type === 'stats-update') {
+    if (data.agg_emoData) Object.assign(emoData, data.agg_emoData);
+    if (typeof data.agg_total === 'number') totalData = data.agg_total;
+    if (!selectedStudentId) { updateChart(); updateStats(); }
+    return;
+  }
+
+  if (type === 'student-session-reset') {
+    const sid = String(data.studentId || '');
+    if (!sid) return;
+
+    delete allSummaries[sid];
+    renderDoneList();
+
+    if (selectedStudentId === sid) resetDetail();
+
+    showToast('🔄 ' + (students[sid]?.name || 'Siswa') + ' memulai sesi baru');
+    return;
+  }
+};
+
+eventSource.onerror = function() {
+  document.getElementById('liveBadge').className  = 'live-badge offline';
+  document.getElementById('liveText').textContent = 'Koneksi terputus...';
+};
+
+// ── BROADCAST CHANNEL ─────────────────────────────────────────────────────
+const ch = new BroadcastChannel('edmotion-vark');
+
+ch.onmessage = function(e) {
+  const { event, data } = e.data || {};
+  const name = data?.studentName || 'Siswa';
+  const time = new Date().toLocaleTimeString('id-ID');
+
+  if (event === 'session-start') {
+    addFeedEntry({ icon:'▶️', main: name + ' memulai sesi baru', sub:'Sesi dimulai', time, student_id: String(data?.studentId || '') });
+    showToast('🔄 ' + name + ' memulai sesi baru');
+  }
+
+  if (event === 'video-complete') {
+    const vark = (data?.varkType || '').toUpperCase();
+    addFeedEntry({ icon:'📹', main: name + ' selesai video ' + vark, sub:'Video selesai', time, student_id: String(data?.studentId || '') });
+    bumpDoneVideos(name, data?.varkType);
+    showToast('📹 ' + name + ' selesai menonton: ' + vark);
+  }
+
+  if (event === 'session-summary') { showSessionSummary(data); }
+  if (event === 'session-end') { showToast('✅ ' + name + ' menyelesaikan semua video VARK!'); }
+};
+
+// ── CEK SISWA AKTIF ───────────────────────────────────────────────────────
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(students).forEach(id => {
+    if (now - (students[id].lastSeen || 0) > ACTIVE_TIMEOUT) students[id].active = false;
+  });
+  renderStudentList();
+  updateStats();
+}, 1000);
+
+// ── SIDEBAR DROPDOWN ──────────────────────────────────────────────────────
+document.getElementById('profileBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('userDropdown').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.getElementById('userDropdown').classList.remove('open');
+});
+
+/* ══════════════════════════════════════════
+   INIT: Load summary + feed dari DB saat login
+   ✅ Feed diambil dari /api/feed (dari DB), bukan hanya dari memory
+   ✅ Setiap entry feed punya student_id → filter per siswa aman, tidak campur
+   ✅ Chart dihitung dari rawCounts per siswa → tidak campur data
+══════════════════════════════════════════ */
+(async function initData() {
+  try {
+    // 1. Load summaries dari DB
+    const summaryRes  = await fetch('/api/session-summary', { credentials: 'include' });
+    const summaryJson = await summaryRes.json();
+    if (summaryJson.summaries && summaryJson.summaries.length > 0) {
+      summaryJson.summaries.forEach(s => {
+        if (s.studentId) allSummaries[String(s.studentId)] = s;
+      });
+      renderDoneList();
+
+      // Auto-select siswa pertama
+      const firstId = String(summaryJson.summaries[0].studentId);
+      selectStudent(firstId);
+    }
+
+    // 2. Load feed dari DB — setiap entry punya student_id
+    const feedRes  = await fetch('/api/feed', { credentials: 'include' });
+    const feedJson = await feedRes.json();
+    if (feedJson.feed && feedJson.feed.length > 0) {
+      // Gabungkan dengan feed yang sudah ada di memory (dari SSE snapshot)
+      // Hindari duplikat: cek berdasarkan kombinasi main + time
+      const existingKeys = new Set(allFeedEntries.map(e => e.main + e.time));
+      feedJson.feed.forEach(e => {
+        const key = e.main + e.time;
+        if (!existingKeys.has(key)) {
+          allFeedEntries.push(e);
+          existingKeys.add(key);
+        }
+      });
+
+      // Sort terbaru di atas (berdasarkan urutan dari server, sudah DESC)
+      // allFeedEntries sudah urut DESC dari server, tidak perlu sort ulang
+
+      // Rebuild emoData aggregate dari semua summaries
+      Object.keys(emoData).forEach(k => emoData[k] = 0);
+      Object.values(allSummaries).forEach(s => {
+        const ed = getStudentEmoData(s);
+        Object.keys(emoData).forEach(k => { emoData[k] += ed[k] || 0; });
+      });
+
+      // Re-render sesuai mode yang aktif
+      if (selectedStudentId && allSummaries[selectedStudentId]) {
+        applyStudentMode(selectedStudentId);
+      } else {
+        renderAllFeed();
+        updateChart();
+        updateDominantStat();
+      }
+    }
+
+  } catch (e) {
+    console.warn('Gagal load data dari DB:', e);
+  }
+})();
+
+updateStats();
+renderStudentList();
+renderDoneList();
+</script>
+</body>
+</html>

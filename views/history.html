@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EdMotion — History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080f1c;--surface:#0d1829;--card:#111e30;
+  --border:rgba(255,255,255,.06);
+  --muted:#64748b;--text:#e2eaf6;
+  --accent:#6ee7b7;
+  --blue:#60a5fa;--red:#f87171;--green:#4ade80;
+  --radius:14px;
+  font-family:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+.app{display:flex;min-height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#052e1e;}
+.brand-name{font-size:16px;font-weight:700;}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+nav{display:flex;flex-direction:column;gap:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);cursor:pointer;text-decoration:none;font-size:14px;transition:all .18s;}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.nav-item.active{background:rgba(96,165,250,.1);color:var(--blue);border-left:3px solid var(--blue);padding-left:9px;}
+.sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border);position:relative;}
+.profile-btn{display:flex;gap:10px;align-items:center;cursor:pointer;padding:6px 8px;border-radius:10px;transition:all .18s;}
+.profile-btn:hover{background:rgba(255,255,255,.04);}
+.avatar{width:38px;height:38px;border-radius:9px;background:linear-gradient(180deg,#0ea5b3,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+.profile-name{font-size:13px;font-weight:600;}
+.profile-role{font-size:11px;color:var(--muted);}
+.user-dropdown{display:none;position:absolute;bottom:calc(100% + 8px);left:0;right:0;background:#0d1829;border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.user-dropdown.open{display:block;}
+.dropdown-item{padding:9px 12px;border-radius:7px;font-size:13px;color:var(--muted);cursor:pointer;transition:all .18s;}
+.dropdown-item:hover{background:rgba(248,113,113,.12);color:var(--red);}
+
+/* ── Main ── */
+.main{flex:1;padding:28px;display:flex;flex-direction:column;gap:20px;min-width:0;}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+.page-title{font-size:22px;font-weight:800}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.last-updated{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;}
+
+.live-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);font-size:12px;font-weight:700;color:var(--green);letter-spacing:.04em;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+.live-dot.paused{background:var(--muted);animation:none;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+@keyframes rowFlash{0%{background:rgba(96,165,250,.18);}100%{background:transparent;}}
+.row-new{animation:rowFlash 1.5s ease forwards;}
+
+.search-wrap{display:flex;align-items:center;gap:12px;}
+.search{flex:1;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);padding:10px 14px;border-radius:10px;transition:border-color .2s;}
+.search:focus-within{border-color:var(--blue);}
+.search input{background:none;border:0;outline:0;color:#fff;width:100%;font-size:14px;font-family:'Space Grotesk',sans-serif;}
+.search-clear{display:none;color:var(--muted);cursor:pointer;font-size:16px;background:none;border:none;padding:0;line-height:1;}
+.search-clear.visible{display:block}
+
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .18s;font-family:'Space Grotesk',sans-serif;}
+.chip.active,.chip:hover{background:rgba(96,165,250,.12);border-color:var(--blue);color:var(--blue);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;overflow-x:auto;}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:15px;font-weight:600;}
+.card-meta{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+table{width:100%;border-collapse:collapse}
+th,td{padding:11px 10px;border-bottom:1px solid var(--border);font-size:13px;text-align:left;}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none;}
+th:hover{color:var(--text);}
+th .sort-icon{font-size:10px;margin-left:4px;opacity:.5;}
+th.sorted .sort-icon{opacity:1;color:var(--blue);}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+tr.hidden-row{display:none}
+td.mono{font-family:'DM Mono',monospace;font-size:12px;}
+mark{background:rgba(96,165,250,.25);color:var(--blue);border-radius:3px;padding:0 2px;}
+#noResultsRow{display:none}
+#noResultsRow.visible{display:table-row}
+
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.btn-pause{padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-weight:600;font-size:13px;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .18s;}
+.btn-pause:hover{background:rgba(255,255,255,.1);color:#fff;}
+.btn-danger{padding:10px 18px;border-radius:10px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);color:var(--red);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;transition:all .18s;}
+.btn-danger:hover{background:rgba(248,113,113,.22);border-color:var(--red);color:#fff;}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);padding:32px;text-align:center;max-width:380px;width:90%;}
+.modal-icon{font-size:40px;margin-bottom:16px;}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:8px;color:var(--red);}
+.modal-desc{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px;}
+.modal-actions{display:flex;gap:10px;justify-content:center;}
+.modal-cancel{padding:9px 22px;border-radius:9px;font-size:13px;font-weight:600;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text);cursor:pointer;font-family:'Space Grotesk',sans-serif;}
+.modal-confirm{padding:9px 22px;border-radius:9px;font-size:13px;font-weight:600;background:#ef4444;border:none;color:#fff;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:background .18s;}
+.modal-confirm:hover{background:#dc2626}
+.modal-confirm:disabled{opacity:.5;cursor:not-allowed}
+
+/* Loading state */
+.loading-row td{text-align:center;color:var(--muted);padding:32px;}
+.spinner-inline{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border)}
+  .main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- Clear Modal -->
+<div class="modal-overlay" id="clearModal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Clear All Data?</div>
+    <div class="modal-desc">
+      This will permanently delete <strong>all detection records</strong>
+      and reset the ID counter back to <strong>1</strong>.<br>
+      This action <strong>cannot be undone</strong>.
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeClearModal()">Cancel</button>
+      <button class="modal-confirm" id="confirmClearBtn" onclick="clearAllData()">Yes, Delete All</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">EM</div>
+    <div>
+      <div class="brand-name">EdMotion</div>
+      <div class="brand-sub">Face Expression Detection</div>
+    </div>
+  </div>
+  <nav>
+    <a href="/dashboard"    class="nav-item">🏠 &nbsp;Dashboard</a>
+    <a href="/live-report"  class="nav-item">📊 &nbsp;Live Report</a>
+    <div                    class="nav-item active">📜 &nbsp;History</div>
+    <a href="/users"        class="nav-item">👥 &nbsp;Users</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="profile-btn" id="profileBtn">
+      <div class="avatar" id="avatarInitial">EM</div>
+      <div>
+        <div class="profile-name" id="profileName">Loading…</div>
+        <div class="profile-role">Admin · Panel</div>
+      </div>
+    </div>
+    <div class="user-dropdown" id="userDropdown">
+      <div class="dropdown-item" id="logoutBtn">🚪 &nbsp;Logout</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">History</div>
+      <div class="page-sub">Manage all detection history records</div>
+      <div class="last-updated" id="lastUpdated">Last updated: —</div>
+    </div>
+    <div class="controls">
+      <div class="live-badge">
+        <div class="live-dot" id="liveDot"></div>
+        LIVE
+      </div>
+      <button class="btn-pause" id="btnPause" onclick="togglePause()">⏸ Pause</button>
+      <button class="btn-danger" onclick="openClearModal()">🗑 Clear All</button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search">
+      🔍
+      <input id="searchInput" placeholder="Search by ID, expression, or date..."
+             oninput="filterRows()" autocomplete="off"/>
+      <button class="search-clear" id="clearBtn" onclick="clearSearch()" title="Clear">✕</button>
+    </div>
+  </div>
+
+  <!-- Filter chips -->
+  <div class="filter-chips" id="filterChips">
+    <button class="chip active" data-expr="" onclick="setExprFilter(this,'')">All</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Detection History</div>
+      <div class="card-meta" id="countLabel">Total: — records</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)" id="th-0">ID <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(1)" id="th-1">Face Detection <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(2)" id="th-2">Expression <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(3)" id="th-3">Duration <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(4)" id="th-4">Local Time <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(5)" id="th-5">Created At <span class="sort-icon">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="loading-row">
+          <td colspan="6"><span class="spinner-inline"></span>Loading data…</td>
+        </tr>
+        <tr id="noResultsRow">
+          <td colspan="6" style="text-align:center;color:var(--muted);padding:32px">
+            🔍 No data matches your search.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let maxId      = 0;
+let totalCount = 0;
+let activeExpr = '';
+let sortColIdx = -1;
+let sortAsc    = true;
+let isPaused   = false;
+let pollTimer  = null;
+const INTERVAL = 3000;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  // Cek session
+  try {
+    const res = await fetch('/api/me');
+    if (!res.ok) { window.location.href = '/'; return; }
+    const user = await res.json();
+    const name = user.name || 'Admin';
+    document.getElementById('profileName').textContent   = name;
+    document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+  } catch {
+    window.location.href = '/';
+    return;
+  }
+
+  // Load semua data awal
+  await loadAll();
+  startPolling();
+})();
+
+// ── Load semua data dari /api/history ─────────────────────────────────────────
+async function loadAll() {
+  try {
+    const res  = await fetch('/api/history');
+    const data = await res.json();
+
+    // Hapus loading row
+    const loadingRow = document.querySelector('.loading-row');
+    if (loadingRow) loadingRow.remove();
+
+    if (data.rows && data.rows.length > 0) {
+      renderRows(data.rows);
+      maxId      = data.maxId;
+      totalCount = data.total;
+      buildChips(data.rows);
+    } else {
+      totalCount = 0;
+      showEmpty('No detection data yet. Waiting for data…');
+    }
+
+    document.getElementById('countLabel').textContent =
+      `Total: ${totalCount} records`;
+    document.getElementById('lastUpdated').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('loadAll error:', e);
+    showEmpty('Failed to load data. Check server connection.');
+  }
+}
+
+// ── Render baris ke tabel ─────────────────────────────────────────────────────
+function renderRows(rows) {
+  const tbody = document.getElementById('tableBody');
+  const noRow = document.getElementById('noResultsRow');
+  rows.forEach(row => {
+    const tr = buildRow(row, false);
+    tbody.insertBefore(tr, noRow);
+  });
+  filterRows();
+}
+
+function buildRow(row, isNew) {
+  const tr = document.createElement('tr');
+  tr.className = 'data-row' + (isNew ? ' row-new' : '');
+  tr.dataset.id        = row.id;
+  tr.dataset.face      = String(row.face_detection).toLowerCase();
+  tr.dataset.expr      = String(row.expression).toLowerCase();
+  tr.dataset.duration  = String(row.duration).toLowerCase();
+  tr.dataset.localtime = String(row.local_time || '').toLowerCase();
+  tr.dataset.createdat = String(row.created_at || '').toLowerCase();
+
+  tr.innerHTML = `
+    <td class="mono" data-col="id">${row.id}</td>
+    <td class="mono" data-col="face">${row.face_detection}</td>
+    <td data-col="expr">${row.expression}</td>
+    <td class="mono" data-col="dur">${row.duration}</td>
+    <td class="mono" data-col="lt">${row.local_time || '-'}</td>
+    <td class="mono" data-col="ca">${row.created_at || '-'}</td>
+  `;
+
+  if (isNew) {
+    setTimeout(() => tr.classList.remove('row-new'), 1600);
+  }
+  return tr;
+}
+
+function showEmpty(msg) {
+  const tbody   = document.getElementById('tableBody');
+  const existing = tbody.querySelector('.empty-row');
+  if (existing) existing.remove();
+  const tr = document.createElement('tr');
+  tr.className = 'empty-row';
+  tr.innerHTML = `<td colspan="6" style="text-align:center;color:var(--muted);padding:32px">${msg}</td>`;
+  tbody.insertBefore(tr, document.getElementById('noResultsRow'));
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+function startPolling() {
+  pollTimer = setInterval(fetchLatest, INTERVAL);
+}
+
+function stopPolling() {
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  const btn = document.getElementById('btnPause');
+  const dot = document.getElementById('liveDot');
+  if (isPaused) {
+    stopPolling();
+    btn.textContent = '▶ Resume';
+    dot.classList.add('paused');
+  } else {
+    startPolling();
+    btn.textContent = '⏸ Pause';
+    dot.classList.remove('paused');
+    fetchLatest();
+  }
+}
+
+async function fetchLatest() {
+  try {
+    const res  = await fetch(`/api/history/latest?since=${maxId}`);
+    const data = await res.json();
+
+    if (data.rows && data.rows.length > 0) {
+      appendRows(data.rows);
+      maxId      = data.maxId;
+      totalCount = data.total;
+      updateChips(data.rows);
+    } else {
+      totalCount = data.total;
+    }
+
+    document.getElementById('countLabel').textContent =
+      (document.getElementById('searchInput').value || activeExpr)
+        ? document.getElementById('countLabel').textContent
+        : `Total: ${totalCount} records`;
+
+    document.getElementById('lastUpdated').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
+
+    filterRows();
+  } catch(e) {
+    console.warn('Poll error:', e);
+  }
+}
+
+function appendRows(newRows) {
+  const tbody  = document.getElementById('tableBody');
+  const noRow  = document.getElementById('noResultsRow');
+
+  // Hapus empty-row jika ada
+  const emptyRow = tbody.querySelector('.empty-row');
+  if (emptyRow) emptyRow.remove();
+
+  newRows.forEach(row => {
+    const tr = buildRow(row, true);
+    tbody.insertBefore(tr, noRow);
+  });
+}
+
+// ── Filter chips builder ──────────────────────────────────────────────────────
+function buildChips(rows) {
+  const seen = new Set();
+  rows.forEach(row => {
+    if (row.expression) seen.add(row.expression);
+  });
+  seen.forEach(expr => addChip(expr));
+}
+
+function updateChips(newRows) {
+  const chips   = document.getElementById('filterChips');
+  const existing = new Set(
+    Array.from(chips.querySelectorAll('.chip[data-expr]'))
+         .map(c => c.dataset.expr).filter(Boolean)
+  );
+  newRows.forEach(row => {
+    const key = (row.expression || '').toLowerCase();
+    if (key && !existing.has(key)) {
+      existing.add(key);
+      addChip(row.expression);
+    }
+  });
+}
+
+function addChip(expr) {
+  const chips = document.getElementById('filterChips');
+  const key   = expr.toLowerCase();
+  const existing = chips.querySelector(`[data-expr="${key}"]`);
+  if (existing) return;
+  const btn = document.createElement('button');
+  btn.className    = 'chip';
+  btn.dataset.expr = key;
+  btn.textContent  = expr;
+  btn.onclick = () => setExprFilter(btn, key);
+  chips.appendChild(btn);
+}
+
+// ── Filter ────────────────────────────────────────────────────────────────────
+function filterRows() {
+  const q      = document.getElementById('searchInput').value.trim().toLowerCase();
+  const clrBtn = document.getElementById('clearBtn');
+  const noRow  = document.getElementById('noResultsRow');
+  const rows   = document.querySelectorAll('.data-row');
+
+  clrBtn.classList.toggle('visible', q.length > 0 || activeExpr.length > 0);
+
+  let visible = 0;
+  rows.forEach(row => {
+    const id        = row.dataset.id        || '';
+    const face      = row.dataset.face      || '';
+    const expr      = row.dataset.expr      || '';
+    const duration  = row.dataset.duration  || '';
+    const localtime = row.dataset.localtime || '';
+    const createdat = row.dataset.createdat || '';
+
+    const matchQ    = q === '' || [id,face,expr,duration,localtime,createdat].some(v => v.includes(q));
+    const matchExpr = activeExpr === '' || expr === activeExpr;
+    const show      = matchQ && matchExpr;
+
+    row.classList.toggle('hidden-row', !show);
+    if (show) visible++;
+
+    // Highlight ID
+    const idCell = row.querySelector('[data-col="id"]');
+    if (q && id.includes(q)) {
+      idCell.innerHTML = id.replace(new RegExp(`(${escRe(q)})`, 'gi'), '<mark>$1</mark>');
+    } else {
+      idCell.textContent = row.dataset.id;
+    }
+  });
+
+  noRow.classList.toggle('visible', visible === 0 && rows.length > 0);
+
+  const label = document.getElementById('countLabel');
+  label.textContent = (q || activeExpr)
+    ? `Showing: ${visible} / ${totalCount} records`
+    : `Total: ${totalCount} records`;
+}
+
+function setExprFilter(btn, expr) {
+  activeExpr = expr;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  filterRows();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  activeExpr = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('.chip[data-expr=""]').classList.add('active');
+  filterRows();
+}
+
+// ── Sort ──────────────────────────────────────────────────────────────────────
+function sortTable(colIdx) {
+  const tbody = document.getElementById('tableBody');
+  const rows  = Array.from(tbody.querySelectorAll('.data-row'));
+
+  if (sortColIdx === colIdx) { sortAsc = !sortAsc; }
+  else { sortColIdx = colIdx; sortAsc = true; }
+
+  document.querySelectorAll('thead th').forEach((th, i) => {
+    th.classList.toggle('sorted', i === colIdx);
+    th.querySelector('.sort-icon').textContent = i === colIdx ? (sortAsc ? '↑' : '↓') : '↕';
+  });
+
+  const keys = ['id','face','expr','duration','localtime','createdat'];
+  const key  = keys[colIdx];
+  rows.sort((a, b) => {
+    const av = a.dataset[key] || '', bv = b.dataset[key] || '';
+    const isNum = !isNaN(av) && !isNaN(bv) && av !== '' && bv !== '';
+    const cmp   = isNum ? Number(av) - Number(bv) : av.localeCompare(bv);
+    return sortAsc ? cmp : -cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+  tbody.appendChild(document.getElementById('noResultsRow'));
+}
+
+// ── Clear Modal ───────────────────────────────────────────────────────────────
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function openClearModal()  { document.getElementById('clearModal').classList.add('show'); }
+function closeClearModal() { document.getElementById('clearModal').classList.remove('show'); }
+
+document.getElementById('clearModal').addEventListener('click', function(e) {
+  if (e.target === this) closeClearModal();
+});
+
+async function clearAllData() {
+  const btn = document.getElementById('confirmClearBtn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    const res  = await fetch('/api/history/clear', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      document.querySelectorAll('.data-row').forEach(r => r.remove());
+      totalCount = 0; maxId = 0;
+      document.getElementById('countLabel').textContent = 'Total: 0 records';
+      clearSearch();
+      // Reset chips
+      document.querySelectorAll('.chip:not([data-expr=""])').forEach(c => c.remove());
+      showEmpty('🗑 All data deleted. Waiting for new data…');
+      closeClearModal();
+    } else {
+      alert('Failed to clear data.');
+    }
+  } catch {
+    alert('Failed to clear data. Check server connection.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Yes, Delete All';
+  }
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+document.getElementById('profileBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('userDropdown').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.getElementById('userDropdown').classList.remove('open');
+});
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  fetch('/api/logout', { method: 'POST' })
+    .finally(() => { window.location.href = '/'; });
+});
+</script>
+</body>
+</html>
