@@ -347,6 +347,7 @@ app.post("/api/detection", requireLogin, (req, res) => {
         sub:  "VARK: " + varkStr,
         dur:  dur.toFixed(1) + "s",
         time: timeStr,
+        student_id: sidStr,
       };
       pushFeed(feedEntry);
 

@@ -24,7 +24,7 @@
   .app{display:flex;min-height:100vh;position:relative;z-index:1}
 
   /* ── SIDEBAR ── */
-  .sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+  .sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;}
   .brand{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
   .logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#6ee7b7,#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#052e1e;flex-shrink:0;}
   .brand-name{font-size:16px;font-weight:800;line-height:1.1;}
@@ -35,9 +35,9 @@
   .nav-item.active{background:rgba(96,165,250,.12);color:var(--blue);border-left:3px solid var(--blue);padding-left:9px;}
 
   /* ── STUDENTS LIVE BOX ── */
-  .student-box{margin-top:18px;border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:12px;overflow:hidden;}
-  .student-box-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-  .student-list{max-height:200px;overflow:auto;padding:8px;}
+  .student-box{margin-top:18px;border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;flex:1 1 0;min-height:0;}
+  .student-box-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;}
+  .student-list{flex:1 1 0;overflow-y:auto;overflow-x:hidden;padding:8px;min-height:60px;}
   .no-students{color:var(--muted);text-align:center;padding:18px 10px;line-height:1.45;font-size:12px;}
 
   .student-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;border:1px solid transparent;transition:background .15s,border .15s;margin-bottom:4px;cursor:default;}
@@ -57,9 +57,15 @@
   .s-dot.offline{background:#64748b;}
   .s-done-icon{font-size:13px;flex-shrink:0;}
 
-  .done-box{margin-top:10px;border:1px solid rgba(96,165,250,.15);background:rgba(96,165,250,.03);border-radius:12px;overflow:hidden;}
-  .done-box-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(96,165,250,.12);font-weight:700;font-size:12px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;}
-  .done-list{max-height:180px;overflow:auto;padding:8px;}
+  .done-box{margin-top:10px;border:1px solid rgba(96,165,250,.15);background:rgba(96,165,250,.03);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;flex:1 1 0;min-height:0;}
+  .done-box-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(96,165,250,.12);font-weight:700;font-size:12px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;}
+  .done-list{flex:1 1 0;overflow-y:auto;overflow-x:hidden;padding:8px;min-height:60px;}
+
+  /* thin scrollbar for student/done lists */
+  .student-list::-webkit-scrollbar,.done-list::-webkit-scrollbar{width:4px;}
+  .student-list::-webkit-scrollbar-track,.done-list::-webkit-scrollbar-track{background:transparent;}
+  .student-list::-webkit-scrollbar-thumb,.done-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px;}
+  .student-list::-webkit-scrollbar-thumb:hover,.done-list::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.25);}
   .no-done{color:var(--muted);text-align:center;padding:14px 10px;font-size:12px;line-height:1.45;}
 
   .sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border);position:relative;}
@@ -177,26 +183,28 @@
       <a href="/users" class="nav-item">👥&nbsp; Users</a>
     </nav>
 
-    <div class="student-box">
-      <div class="student-box-head">
-        <span>Students Live</span>
-        <span style="font-family:'DM Mono',monospace" id="studentCount">0</span>
-      </div>
-      <div class="student-list" id="studentList">
-        <div class="no-students">
-          <div style="font-size:22px;margin-bottom:6px;">📡</div>
-          Belum ada siswa<br>bergabung ke sesi
+    <div style="display:flex;flex-direction:column;flex:1 1 0;min-height:0;">
+      <div class="student-box">
+        <div class="student-box-head">
+          <span>Students Live</span>
+          <span style="font-family:'DM Mono',monospace" id="studentCount">0</span>
+        </div>
+        <div class="student-list" id="studentList">
+          <div class="no-students">
+            <div style="font-size:22px;margin-bottom:6px;">📡</div>
+            Belum ada siswa<br>bergabung ke sesi
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="done-box">
-      <div class="done-box-head">
-        <span>✅ Siswa Selesai</span>
-        <span style="font-family:'DM Mono',monospace" id="doneCount">0</span>
-      </div>
-      <div class="done-list" id="doneList">
-        <div class="no-done">Belum ada siswa<br>yang menyelesaikan sesi</div>
+      <div class="done-box">
+        <div class="done-box-head">
+          <span>✅ Siswa Selesai</span>
+          <span style="font-family:'DM Mono',monospace" id="doneCount">0</span>
+        </div>
+        <div class="done-list" id="doneList">
+          <div class="no-done">Belum ada siswa<br>yang menyelesaikan sesi</div>
+        </div>
       </div>
     </div>
 
@@ -770,8 +778,19 @@ function applySnapshot(state) {
     if (typeof s.liveDurasi === 'number') studentLiveDurasi[id] = s.liveDurasi;
   });
 
-  // ✅ Snapshot feed dari server sudah punya student_id per entry
-  renderFeed(state.feed || []);
+  // Feed dari SSE snapshot: pastikan student_id ada (server lama mungkin belum kirim)
+  // Prioritaskan data dari /api/feed (DB) — ini hanya untuk entri real-time baru
+  const snapFeed = (state.feed || []).filter(e => e.student_id); // hanya yang punya student_id
+  if (snapFeed.length > 0) {
+    const existingKeys = new Set(allFeedEntries.map(e => e.main + e.time));
+    snapFeed.forEach(e => {
+      const key = e.main + e.time;
+      if (!existingKeys.has(key)) { allFeedEntries.unshift(e); existingKeys.add(key); }
+    });
+    if (selectedStudentId && allSummaries[selectedStudentId]) {
+      renderFilteredFeedById(selectedStudentId, allSummaries[selectedStudentId].studentName || '');
+    } else { renderAllFeed(); }
+  }
 
   if (selectedStudentId && allSummaries[selectedStudentId]) {
     applyStudentMode(selectedStudentId);
@@ -925,16 +944,10 @@ document.addEventListener('click', () => {
     const feedRes  = await fetch('/api/feed', { credentials: 'include' });
     const feedJson = await feedRes.json();
     if (feedJson.feed && feedJson.feed.length > 0) {
-      // Gabungkan dengan feed yang sudah ada di memory (dari SSE snapshot)
-      // Hindari duplikat: cek berdasarkan kombinasi main + time
-      const existingKeys = new Set(allFeedEntries.map(e => e.main + e.time));
-      feedJson.feed.forEach(e => {
-        const key = e.main + e.time;
-        if (!existingKeys.has(key)) {
-          allFeedEntries.push(e);
-          existingKeys.add(key);
-        }
-      });
+      // Ganti allFeedEntries dengan data dari DB (lebih lengkap dan punya student_id)
+      // Data real-time baru dari SSE akan ditambahkan via addFeedEntry setelah ini
+      allFeedEntries.length = 0;
+      feedJson.feed.forEach(e => allFeedEntries.push(e));
 
       // Sort terbaru di atas (berdasarkan urutan dari server, sudah DESC)
       // allFeedEntries sudah urut DESC dari server, tidak perlu sort ulang
