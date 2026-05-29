@@ -370,36 +370,46 @@ app.post("/api/detection", requireLogin, (req, res) => {
    Tidak ada pencampuran data antar siswa.
 ========================= */
 app.get("/api/feed", requireLogin, (req, res) => {
-  history.query(
-    `SELECT d.student_id, u.name AS student_name, d.video_type, d.expression, d.local_time
-     FROM detection d
-     LEFT JOIN users u ON u.id = d.student_id
-     WHERE d.student_id IS NOT NULL
-     ORDER BY d.id DESC
-     LIMIT 50`,
-    (err, rows) => {
-      if (err) { console.error("[feed] DB error:", err); return res.status(500).json({ error: "db_error" }); }
+  const sid = req.query.student_id ? String(req.query.student_id) : null;
 
-      const emojiMap = { Normal:"🙂", Bosan:"😐", Bingung:"🤔", Menguap:"😮" };
+  // Kalau ada student_id → ambil SEMUA data siswa itu (tidak dibatasi 50)
+  // Kalau tidak ada → ambil 100 terbaru dari semua siswa
+  const sql = sid
+    ? `SELECT d.student_id, u.name AS student_name, d.video_type, d.expression, d.local_time
+       FROM detection d
+       LEFT JOIN users u ON u.id = d.student_id
+       WHERE d.student_id = ?
+       ORDER BY d.id DESC`
+    : `SELECT d.student_id, u.name AS student_name, d.video_type, d.expression, d.local_time
+       FROM detection d
+       LEFT JOIN users u ON u.id = d.student_id
+       WHERE d.student_id IS NOT NULL
+       ORDER BY d.id DESC
+       LIMIT 100`;
 
-      const feed = rows.map(row => {
-        const emotion = normalizeEmotion(row.expression);
-        const time    = row.local_time
-          ? new Date(row.local_time).toLocaleTimeString("id-ID")
-          : "--:--:--";
-        return {
-          icon:       emojiMap[emotion] || "🙂",
-          main:       (row.student_name || "Siswa") + " — " + emotion,
-          sub:        "VARK: " + (row.video_type || "-"),
-          time,
-          // ✅ student_id disertakan agar frontend bisa filter per siswa tanpa campur
-          student_id: String(row.student_id),
-        };
-      });
+  const params = sid ? [sid] : [];
 
-      res.json({ feed });
-    }
-  );
+  history.query(sql, params, (err, rows) => {
+    if (err) { console.error("[feed] DB error:", err); return res.status(500).json({ error: "db_error" }); }
+
+    const emojiMap = { Normal:"🙂", Bosan:"😐", Bingung:"🤔", Menguap:"😮" };
+
+    const feed = rows.map(row => {
+      const emotion = normalizeEmotion(row.expression);
+      const time    = row.local_time
+        ? new Date(row.local_time).toLocaleTimeString("id-ID")
+        : "--:--:--";
+      return {
+        icon:       emojiMap[emotion] || "🙂",
+        main:       (row.student_name || "Siswa") + " — " + emotion,
+        sub:        "VARK: " + (row.video_type || "-"),
+        time,
+        student_id: String(row.student_id),
+      };
+    });
+
+    res.json({ feed });
+  });
 });
 
 /* =========================

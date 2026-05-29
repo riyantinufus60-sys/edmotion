@@ -489,13 +489,28 @@ function applyStudentMode(sid) {
   updateChart(ed);
   document.getElementById('chartPanelTitle').textContent = '📊 Distribusi Emosi — ' + name;
 
-  // --- Feed difilter berdasarkan student_id siswa ini (BUKAN nama, agar tidak campur) ---
-  renderFilteredFeedById(sid, name);
+  // --- Fetch feed khusus siswa ini dari DB (semua data, tidak dibatasi 50) ---
+  fetch('/api/feed?student_id=' + sid, { credentials: 'include' })
+    .then(r => r.json())
+    .then(json => {
+      if (json.feed) {
+        // Ganti allFeedEntries dengan data lengkap siswa ini dari DB
+        allFeedEntries.length = 0;
+        json.feed.forEach(e => allFeedEntries.push(e));
+      }
+      renderFilteredFeedById(sid, name);
+    })
+    .catch(() => renderFilteredFeedById(sid, name));
   document.getElementById('feedPanelTitle').textContent = '📡 Data Masuk — ' + name;
 }
 
 function applyAggregateMode() {
   document.getElementById('filterBadge').style.display = 'none';
+  // Reload feed semua siswa dari DB
+  fetch('/api/feed', { credentials: 'include' })
+    .then(r => r.json())
+    .then(json => { if (json.feed) { allFeedEntries.length = 0; json.feed.forEach(e => allFeedEntries.push(e)); } renderAllFeed(); })
+    .catch(() => renderAllFeed());
 
   document.getElementById('cardTotalData').classList.remove('student-mode');
   document.getElementById('cardDominant').classList.remove('student-mode');
