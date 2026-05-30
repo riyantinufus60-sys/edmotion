@@ -655,5 +655,182 @@ app.use((req, res) => res.status(404).send("404 — Halaman tidak ditemukan."));
 /* =========================
    SERVER
 ========================= */
+
+/* =============================================================
+   ACTUAL LABELS — Input manual guru/admin
+   ============================================================= */
+
+// GET semua actual_labels (untuk history page)
+app.get("/api/actual-labels", requireLogin, (req, res) => {
+  history.query(
+    "SELECT detection_id, actual_label FROM actual_labels",
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: "db_error" });
+      const map = {};
+      rows.forEach(r => { map[r.detection_id] = r.actual_label; });
+      res.json({ labels: map });
+    }
+  );
+});
+
+// POST simpan/update actual_label untuk satu detection row
+app.post("/api/actual-labels", requireLogin, (req, res) => {
+  const { detection_id, student_id, actual_label } = req.body;
+  if (!detection_id || !actual_label) return res.status(400).json({ error: "invalid" });
+  const adminId = req.session.user?.id || null;
+  history.query(
+    `INSERT INTO actual_labels (detection_id, student_id, actual_label, labeled_by)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE actual_label=VALUES(actual_label), labeled_by=VALUES(labeled_by)`,
+    [detection_id, student_id || 0, actual_label, adminId],
+    (err) => {
+      if (err) { console.error("[actual-labels] save error:", err); return res.status(500).json({ error: "db_error" }); }
+      res.json({ success: true });
+    }
+  );
+});
+
+// GET confusion matrix untuk student_id tertentu (atau semua)
+app.get("/api/confusion-matrix", requireLogin, (req, res) => {
+  const sid = req.query.student_id ? parseInt(req.query.student_id) : null;
+  const where = sid ? "WHERE d.student_id = ?" : "";
+  const params = sid ? [sid] : [];
+
+  history.query(
+    `SELECT d.expression AS predicted, al.actual_label AS actual
+     FROM detection d
+     INNER JOIN actual_labels al ON al.detection_id = d.id
+     ${where}`,
+    params,
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: "db_error" });
+
+      const labels = ["Normal", "Bosan", "Bingung", "Menguap"];
+      // Inisialisasi matrix 4x4
+      const matrix = {};
+      labels.forEach(a => {
+        matrix[a] = {};
+        labels.forEach(p => { matrix[a][p] = 0; });
+      });
+
+      let total = 0;
+      rows.forEach(({ predicted, actual }) => {
+        const norm = (e) => {
+          e = String(e || "").toLowerCase();
+          if (e.includes("bos") || e.includes("bored")) return "Bosan";
+          if (e.includes("con") || e.includes("fear") || e.includes("bing")) return "Bingung";
+          if (e.includes("yaw") || e.includes("sle") || e.includes("mengu")) return "Menguap";
+          return "Normal";
+        };
+        const a = norm(actual);
+        const p = norm(predicted);
+        if (matrix[a] && matrix[a][p] !== undefined) {
+          matrix[a][p]++;
+          total++;
+        }
+      });
+
+      // Hitung metrik per kelas
+      const metrics = {};
+      labels.forEach(lbl => {
+        const tp = matrix[lbl][lbl];
+        const fp = labels.reduce((s, a) => s + (a !== lbl ? matrix[a][lbl] : 0), 0);
+        const fn = labels.reduce((s, p) => s + (p !== lbl ? matrix[lbl][p] : 0), 0);
+        const precision = (tp + fp) > 0 ? tp / (tp + fp) : 0;
+        const recall    = (tp + fn) > 0 ? tp / (tp + fn) : 0;
+        const f1        = (precision + recall) > 0 ? 2 * precision * recall / (precision + recall) : 0;
+        metrics[lbl] = { tp, fp, fn, precision, recall, f1 };
+      });
+
+      const correct = labels.reduce((s, l) => s + matrix[l][l], 0);
+      const accuracy = total > 0 ? correct / total : 0;
+
+      res.json({ matrix, labels, metrics, accuracy, total });
+    }
+  );
+});
+
+// ══════════════════════════════════════════════════════
+// POST /api/actual-labels/generate
+// Otomatis isi actual_label berdasarkan ekspresi mayoritas
+// per (student_id, video_type) — tanpa perlu input manual
+// ══════════════════════════════════════════════════════
+app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
+  const sid = req.body.student_id ? parseInt(req.body.student_id) : null;
+  const where = sid ? "WHERE d.student_id = ?" : "";
+  const params = sid ? [sid] : [];
+
+  // Step 1: ambil semua detection, hitung mayoritas ekspresi per (student_id, video_type)
+  history.query(
+    `SELECT d.id AS detection_id, d.student_id, d.video_type, d.expression
+     FROM detection d
+     WHERE d.student_id IS NOT NULL
+     ${sid ? "AND d.student_id = ?" : ""}
+     ORDER BY d.student_id, d.video_type, d.id`,
+    sid ? [sid] : [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: "db_error", detail: err.message });
+
+      const normalizeEmo = (e) => {
+        e = String(e || "").toLowerCase();
+        if (e.includes("bos") || e.includes("bored"))              return "Bosan";
+        if (e.includes("con") || e.includes("fear") || e.includes("bing")) return "Bingung";
+        if (e.includes("yaw") || e.includes("sle") || e.includes("mengu")) return "Menguap";
+        return "Normal";
+      };
+
+      // Hitung frekuensi per (student_id, video_type)
+      const groups = {};
+      rows.forEach(r => {
+        const key = `${r.student_id}||${r.video_type || "unknown"}`;
+        if (!groups[key]) groups[key] = { counts: {}, ids: [] };
+        const emo = normalizeEmo(r.expression);
+        groups[key].counts[emo] = (groups[key].counts[emo] || 0) + 1;
+        groups[key].ids.push(r.detection_id);
+      });
+
+      // Tentukan mayoritas per group
+      const insertRows = [];
+      Object.values(groups).forEach(g => {
+        const dominant = Object.entries(g.counts)
+          .sort((a, b) => b[1] - a[1])[0][0];
+        g.ids.forEach(did => insertRows.push([did, dominant]));
+      });
+
+      if (insertRows.length === 0)
+        return res.json({ success: true, generated: 0, message: "Tidak ada data untuk di-generate" });
+
+      // Step 2: bulk insert/update actual_labels
+      const adminId = req.session.user?.id || null;
+      let done = 0;
+      const batchSize = 100;
+
+      const insertBatch = (batch) => {
+        const placeholders = batch.map(() => "(?, 0, ?, ?)").join(",");
+        const vals = batch.flatMap(([did, lbl]) => [did, lbl, adminId]);
+        history.query(
+          \`INSERT INTO actual_labels (detection_id, student_id, actual_label, labeled_by)
+           VALUES \${placeholders}
+           ON DUPLICATE KEY UPDATE actual_label=VALUES(actual_label), labeled_by=VALUES(labeled_by)\`,
+          vals,
+          (e2) => {
+            if (e2) console.warn("[generate] batch error:", e2.message);
+            done += batch.length;
+            if (done >= insertRows.length) {
+              console.log(\`[generate] Selesai: \${done} actual_labels di-generate\`);
+              res.json({ success: true, generated: done });
+            }
+          }
+        );
+      };
+
+      // Proses per batch 100
+      for (let i = 0; i < insertRows.length; i += batchSize) {
+        insertBatch(insertRows.slice(i, i + batchSize));
+      }
+    }
+  );
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`[SERVER] Running on port ${PORT}`));
