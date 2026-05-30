@@ -809,15 +809,15 @@ app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
         const placeholders = batch.map(() => "(?, 0, ?, ?)").join(",");
         const vals = batch.flatMap(([did, lbl]) => [did, lbl, adminId]);
         history.query(
-          \`INSERT INTO actual_labels (detection_id, student_id, actual_label, labeled_by)
-           VALUES \${placeholders}
-           ON DUPLICATE KEY UPDATE actual_label=VALUES(actual_label), labeled_by=VALUES(labeled_by)\`,
+          `INSERT INTO actual_labels (detection_id, student_id, actual_label, labeled_by)
+           VALUES ${placeholders}
+           ON DUPLICATE KEY UPDATE actual_label=VALUES(actual_label), labeled_by=VALUES(labeled_by)`,
           vals,
           (e2) => {
             if (e2) console.warn("[generate] batch error:", e2.message);
             done += batch.length;
             if (done >= insertRows.length) {
-              console.log(\`[generate] Selesai: \${done} actual_labels di-generate\`);
+              console.log(`[generate] Selesai: ${done} actual_labels di-generate`);
               res.json({ success: true, generated: done });
             }
           }
