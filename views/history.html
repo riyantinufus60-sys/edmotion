@@ -206,7 +206,7 @@ mark{background:rgba(96,165,250,.25);color:var(--blue);border-radius:3px;padding
   <!-- ═══════════════════════════════════════
        CONFUSION MATRIX SECTION
   ═══════════════════════════════════════ -->
-  <div class="card" id="cmCard" style="display:none;margin-bottom:16px">
+  <div class="card" id="cmCard" style="margin-bottom:16px">
     <div class="card-header" style="margin-bottom:20px">
       <div class="card-title">📊 Confusion Matrix</div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -334,10 +334,22 @@ async function loadAll() {
       `Total: ${totalCount} records`;
     document.getElementById('lastUpdated').textContent =
       'Last updated: ' + new Date().toLocaleTimeString();
+
+    // Load actual labels lalu confusion matrix
+    await loadActualLabelsAndCM();
   } catch(e) {
     console.error('loadAll error:', e);
     showEmpty('Failed to load data. Check server connection.');
   }
+}
+
+async function loadActualLabelsAndCM() {
+  try {
+    await loadActualLabels();
+  } catch(e) { console.warn('loadActualLabels error:', e); }
+  const sid = document.getElementById('studentFilter')?.value || null;
+  await loadConfusionMatrix(sid);
+  document.getElementById('cmCard').style.display = '';
 }
 
 // ── Render baris ke tabel ─────────────────────────────────────────────────────
@@ -353,6 +365,26 @@ function renderRows(rows) {
 
 // Map actual labels dari DB: { detection_id: actual_label }
 let actualLabelsMap = {};
+
+async function loadActualLabels() {
+  try {
+    const res = await fetch('/api/actual-labels', { credentials: 'include' });
+    const data = await res.json();
+    actualLabelsMap = {};
+    (data.labels || []).forEach(l => {
+      actualLabelsMap[String(l.detection_id)] = l.actual_label;
+    });
+    // Update dropdown UI yang sudah render
+    document.querySelectorAll('.actual-select').forEach(sel => {
+      const did = sel.dataset.did;
+      if (actualLabelsMap[did]) {
+        sel.value = actualLabelsMap[did];
+        const tick = sel.nextElementSibling;
+        if (tick) tick.style.display = '';
+      }
+    });
+  } catch(e) { console.warn('loadActualLabels:', e); }
+}
 
 function buildRow(row, isNew) {
   const tr = document.createElement('tr');
@@ -666,10 +698,19 @@ async function loadConfusionMatrix(sid) {
   try {
     const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
+    if (!data.total || data.total === 0) {
+      document.getElementById('cmAccuracy').innerHTML =
+        '<span style="color:var(--muted)">Belum ada actual label. Klik <strong style="color:#6ee7b7">⚡ Generate Actual Labels</strong> untuk membuat otomatis.</span>';
+      document.getElementById('cmTable').innerHTML = '';
+      document.getElementById('cmMetricsBody').innerHTML = '';
+      document.getElementById('cmMeta').textContent = '0 data berlabel';
+      return;
+    }
     renderConfusionMatrix(data);
-    document.getElementById('cmCard').style.display = '';
   } catch(e) {
     console.warn('CM error:', e);
+    document.getElementById('cmAccuracy').innerHTML =
+      '<span style="color:var(--muted)">Klik ⚡ Generate Actual Labels untuk memulai.</span>';
   }
 }
 
@@ -784,13 +825,7 @@ async function generateActualLabels() {
 const _origSetStudent = typeof setStudentFilter === 'function' ? setStudentFilter : null;
 
 // Patch: setelah data table dimuat, auto-load CM
-const _origBuildTable = buildTable;
-buildTable = function(...args) {
-  _origBuildTable(...args);
-  const sid = document.getElementById('studentFilter')?.value || '';
-  if (sid) loadConfusionMatrix(sid);
-  else loadConfusionMatrix(null);
-};
+// CM dipanggil dari loadActualLabelsAndCM()
 </script>
 </body>
 </html>
