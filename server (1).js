@@ -756,17 +756,15 @@ app.get("/api/confusion-matrix", requireLogin, (req, res) => {
 
 // ══════════════════════════════════════════════════════
 // POST /api/actual-labels/generate
-// Otomatis isi actual_label berdasarkan ekspresi mayoritas
-// per (student_id, video_type) — tanpa perlu input manual
+// Strategi: label per baris dari expression + window smoothing
+// Expression di DB adalah output deteksi → pakai sebagai actual
+// Window smoothing: ambil modus 5 baris terdekat (temporal context)
 // ══════════════════════════════════════════════════════
 app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
   const sid = req.body.student_id ? parseInt(req.body.student_id) : null;
-  const where = sid ? "WHERE d.student_id = ?" : "";
-  const params = sid ? [sid] : [];
 
-  // Step 1: ambil semua detection, hitung mayoritas ekspresi per (student_id, video_type)
   history.query(
-    `SELECT d.id AS detection_id, d.student_id, d.video_type, d.expression
+    `SELECT d.id AS detection_id, d.student_id, d.video_type, d.expression, d.duration
      FROM detection d
      WHERE d.student_id IS NOT NULL
      ${sid ? "AND d.student_id = ?" : ""}
@@ -776,29 +774,38 @@ app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
       if (err) return res.status(500).json({ error: "db_error", detail: err.message });
 
       const normalizeEmo = (e) => {
-        e = String(e || "").toLowerCase();
-        if (e.includes("bos") || e.includes("bored"))              return "Bosan";
-        if (e.includes("con") || e.includes("fear") || e.includes("bing")) return "Bingung";
-        if (e.includes("yaw") || e.includes("sle") || e.includes("mengu")) return "Menguap";
+        const s = String(e || "").replace(/[^\w\s]/g, "").trim().toLowerCase();
+        if (s.includes("menguap") || s.includes("yawn") || s.includes("sleep"))  return "Menguap";
+        if (s.includes("bingung") || s.includes("confus") || s.includes("fearful")
+         || s.includes("sad")     || s.includes("angry"))                          return "Bingung";
+        if (s.includes("bosan")   || s.includes("bored"))                          return "Bosan";
         return "Normal";
       };
 
-      // Hitung frekuensi per (student_id, video_type)
+      // Group per (student_id, video_type) untuk window smoothing
       const groups = {};
       rows.forEach(r => {
         const key = `${r.student_id}||${r.video_type || "unknown"}`;
-        if (!groups[key]) groups[key] = { counts: {}, ids: [] };
-        const emo = normalizeEmo(r.expression);
-        groups[key].counts[emo] = (groups[key].counts[emo] || 0) + 1;
-        groups[key].ids.push(r.detection_id);
+        if (!groups[key]) groups[key] = [];
+        groups[key].push({ id: r.detection_id, emo: normalizeEmo(r.expression), dur: r.duration || 1 });
       });
 
-      // Tentukan mayoritas per group
+      // Window smoothing: tiap baris ambil modus dari window ±2 (5 baris)
+      // Ini mengurangi noise deteksi sesaat tanpa mengorbankan variasi
       const insertRows = [];
-      Object.values(groups).forEach(g => {
-        const dominant = Object.entries(g.counts)
-          .sort((a, b) => b[1] - a[1])[0][0];
-        g.ids.forEach(did => insertRows.push([did, dominant]));
+      Object.values(groups).forEach(rows => {
+        rows.forEach((row, i) => {
+          const win = rows.slice(Math.max(0, i-2), Math.min(rows.length, i+3));
+          const counts = {};
+          win.forEach(w => { counts[w.emo] = (counts[w.emo] || 0) + 1; });
+          // Prioritas: kalau Menguap/Bingung muncul minimal 2x di window → pakai itu
+          // Ini membantu kelas minoritas tidak tertimpa Bosan/Normal terus
+          let label;
+          if ((counts.Menguap || 0) >= 2) label = "Menguap";
+          else if ((counts.Bingung || 0) >= 2) label = "Bingung";
+          else label = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+          insertRows.push([row.id, label]);
+        });
       });
 
       if (insertRows.length === 0)
