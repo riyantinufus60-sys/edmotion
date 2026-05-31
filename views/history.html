@@ -695,22 +695,27 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 ══════════════════════════════════════════ */
 async function loadConfusionMatrix(sid) {
   const url = sid ? `/api/confusion-matrix?student_id=${sid}` : '/api/confusion-matrix';
+  const placeholder = (msg) => {
+    document.getElementById('cmAccuracy').innerHTML = `<span style="color:var(--muted)">${msg}</span>`;
+    document.getElementById('cmTable').innerHTML = '';
+    document.getElementById('cmMetricsBody').innerHTML = '';
+    document.getElementById('cmMeta').textContent = '0 data berlabel';
+  };
   try {
     const res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) {
+      placeholder('Klik ⚡ Generate Actual Labels untuk memulai.');
+      return;
+    }
     const data = await res.json();
-    if (!data.total || data.total === 0) {
-      document.getElementById('cmAccuracy').innerHTML =
-        '<span style="color:var(--muted)">Belum ada actual label. Klik <strong style="color:#6ee7b7">⚡ Generate Actual Labels</strong> untuk membuat otomatis.</span>';
-      document.getElementById('cmTable').innerHTML = '';
-      document.getElementById('cmMetricsBody').innerHTML = '';
-      document.getElementById('cmMeta').textContent = '0 data berlabel';
+    if (data.error || !data.total || data.total === 0) {
+      placeholder('Belum ada actual label. Klik <strong style="color:#6ee7b7">⚡ Generate Actual Labels</strong> untuk membuat otomatis.');
       return;
     }
     renderConfusionMatrix(data);
   } catch(e) {
     console.warn('CM error:', e);
-    document.getElementById('cmAccuracy').innerHTML =
-      '<span style="color:var(--muted)">Klik ⚡ Generate Actual Labels untuk memulai.</span>';
+    placeholder('Klik ⚡ Generate Actual Labels untuk memulai.');
   }
 }
 

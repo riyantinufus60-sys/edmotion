@@ -693,14 +693,16 @@ app.post("/api/actual-labels", requireLogin, (req, res) => {
 // GET confusion matrix untuk student_id tertentu (atau semua)
 app.get("/api/confusion-matrix", requireLogin, (req, res) => {
   const sid = req.query.student_id ? parseInt(req.query.student_id) : null;
-  const where = sid ? "WHERE d.student_id = ?" : "";
+  const whereClause = sid ? "WHERE d.student_id = ?" : "";
   const params = sid ? [sid] : [];
 
-  history.query(
-    `SELECT d.expression AS predicted, al.actual_label AS actual
+  const sql = `SELECT d.expression AS predicted, al.actual_label AS actual
      FROM detection d
      INNER JOIN actual_labels al ON al.detection_id = d.id
-     ${where}`,
+     ${whereClause}`;
+
+  history.query(
+    sql,
     params,
     (err, rows) => {
       if (err) return res.status(500).json({ error: "db_error" });
