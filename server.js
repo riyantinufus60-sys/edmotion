@@ -72,10 +72,17 @@ function getAggregateStats() {
 }
 
 function normalizeEmotion(raw) {
-  const s = String(raw || "").trim().toLowerCase().replace(/[^\w\s]/g, "").trim();
-  if (s.includes("bosan")   || s.includes("bored"))                           return "Bosan";
-  if (s.includes("bingung") || s.includes("confus") || s.includes("fearful")) return "Bingung";
-  if (s.includes("menguap") || s.includes("sleep")  || s.includes("surpris")) return "Menguap";
+  // Strip emoji dan karakter non-ascii, lowercase
+  const s = String(raw || "")
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}]/gu, "")
+    .trim().toLowerCase()
+    .replace(/[^\w\s]/g, "").trim();
+
+  // Urutan prioritas: Menguap → Bingung → Bosan → Normal
+  if (s.includes("menguap") || s.includes("yawn")  || s.includes("sleep"))   return "Menguap";
+  if (s.includes("bingung") || s.includes("confus") || s.includes("fearful")
+   || s.includes("sad")     || s.includes("angry"))                            return "Bingung";
+  if (s.includes("bosan")   || s.includes("bored"))                            return "Bosan";
   return "Normal";
 }
 

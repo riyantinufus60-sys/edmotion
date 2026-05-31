@@ -922,21 +922,58 @@ async function faceDetectLoop() {
       const mouthThreshold = isGlasses ? 0.30 : 0.35;
       const browThreshold  = isGlasses ? 0.23 : 0.25;
 
-      let cond = '🙂 Normal';
-      if (mouthRatio > mouthThreshold && surprised > 0.3) {
-        cond = '😮 Menguap';
-      } else if (neutral > 0.6 && mouthRatio < 0.25) {
-        cond = '😐 Bosan';
-      } else if ((sad > 0.20 || fearful > 0.20 || browRatio < browThreshold) && mouthRatio < 0.35 && neutral < 0.7) {
-        cond = '🤔 Bingung';
-      }
+      // ── SCORING PER KELAS ──────────────────────────────────────────
+      // Ambil semua face-api scores
+      const { angry, disgusted, happy } = expressions;
+
+      // MENGUAP: mulut terbuka LEBAR + mata sedikit menutup
+      // mouthRatio tinggi + eyeOpenRatio kecil → menguap
+      const eyeClosingScore = Math.max(0, 1 - eyeOpenRatio / 8);
+      const yawnScore = (
+        Math.min(1, mouthRatio / 0.55) * 0.6 +   // mulut terbuka
+        eyeClosingScore * 0.25 +                   // mata sedikit menutup
+        Math.min(1, surprised * 1.5) * 0.15        // surprised membantu
+      );
+
+      // BOSAN: ekspresi datar, netral tinggi, mulut tertutup, alis normal
+      // neutral dominan tapi bukan menguap dan bukan bingung
+      const boredScore = (
+        Math.min(1, neutral * 1.2) * 0.55 +        // neutral dominan
+        Math.max(0, 1 - mouthRatio / 0.25) * 0.25 + // mulut tertutup
+        Math.max(0, 1 - (sad + fearful + angry)) * 0.20 // tidak ada emosi negatif
+      );
+
+      // BINGUNG: alis turun/dekat mata, sad/fearful/angry, mulut tidak terlalu terbuka
+      const confusedScore = (
+        Math.min(1, (sad * 0.4 + fearful * 0.35 + angry * 0.25) * 2.5) * 0.50 +
+        Math.max(0, browThreshold - browRatio + 0.05) * 4 * 0.30 +  // alis turun
+        Math.max(0, 0.35 - mouthRatio) * 2 * 0.20                   // mulut tidak terbuka
+      );
+
+      // NORMAL: semua score rendah + neutral cukup tinggi + ekspresi stabil
+      const normalScore = (
+        Math.min(1, neutral * 1.1) * 0.50 +
+        Math.max(0, 1 - yawnScore) * 0.25 +
+        Math.max(0, 1 - confusedScore) * 0.25
+      );
 
       latestScores = {
-        Normal:  +(neutral).toFixed(3),
-        Bosan:   +(neutral > 0.6 && mouthRatio < 0.25 ? neutral : 0).toFixed(3),
-        Bingung: +((sad + fearful) / 2).toFixed(3),
-        Menguap: +(mouthRatio > mouthThreshold ? mouthRatio : 0).toFixed(3),
+        Normal:  +Math.min(1, normalScore).toFixed(3),
+        Bosan:   +Math.min(1, boredScore).toFixed(3),
+        Bingung: +Math.min(1, confusedScore).toFixed(3),
+        Menguap: +Math.min(1, yawnScore).toFixed(3),
       };
+
+      // ── KLASIFIKASI FINAL dengan confidence threshold ──────────────
+      // Hanya label jika confidence cukup tinggi (> threshold)
+      const THRESHOLD = { Normal: 0.38, Bosan: 0.42, Bingung: 0.30, Menguap: 0.40 };
+      const candidates = Object.entries(latestScores)
+        .filter(([k, v]) => v >= THRESHOLD[k])
+        .sort((a, b) => b[1] - a[1]);
+
+      const winner = candidates.length > 0 ? candidates[0][0] : 'Normal';
+      const EMOJI = { Normal: '🙂', Bosan: '😐', Bingung: '🤔', Menguap: '😮' };
+      let cond = `${EMOJI[winner]} ${winner}`;
       updateBars(latestScores);
 
       const box    = detection.box;
