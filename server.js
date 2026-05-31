@@ -648,11 +648,6 @@ app.get("/api/stream", requireLogin, (req, res) => {
 });
 
 /* =========================
-   404 HANDLER
-========================= */
-app.use((req, res) => res.status(404).send("404 — Halaman tidak ditemukan."));
-
-/* =========================
    SERVER
 ========================= */
 
@@ -833,6 +828,11 @@ app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
     }
   );
 });
+
+/* =========================
+   404 HANDLER
+========================= */
+app.use((req, res) => res.status(404).send("404 — Halaman tidak ditemukan."));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`[SERVER] Running on port ${PORT}`));
