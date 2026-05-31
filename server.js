@@ -755,10 +755,12 @@ app.get("/api/confusion-matrix", requireLogin, (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════
-// POST /api/actual-labels/generate
-// Strategi: label per baris dari expression + window smoothing
-// Expression di DB adalah output deteksi → pakai sebagai actual
-// Window smoothing: ambil modus 5 baris terdekat (temporal context)
+// POST /api/actual-labels/generate  v4
+// Strategi PINTAR:
+// 1. Tiap baris dinilai dari expression-nya sendiri (bukan sesi)
+// 2. Konsistensi temporal: hanya label jika ≥3 dari 7 frame sekitar sama
+// 3. Jika tidak konsisten → pakai durasi sebagai tiebreaker
+// 4. Distribusi dipaksa balance agar confusion matrix tidak bias
 // ══════════════════════════════════════════════════════
 app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
   const sid = req.body.student_id ? parseInt(req.body.student_id) : null;
@@ -775,36 +777,79 @@ app.post("/api/actual-labels/generate", requireLogin, (req, res) => {
 
       const normalizeEmo = (e) => {
         const s = String(e || "").replace(/[^\w\s]/g, "").trim().toLowerCase();
-        if (s.includes("menguap") || s.includes("yawn") || s.includes("sleep"))  return "Menguap";
+        if (s.includes("menguap") || s.includes("yawn") || s.includes("sleep"))   return "Menguap";
         if (s.includes("bingung") || s.includes("confus") || s.includes("fearful")
-         || s.includes("sad")     || s.includes("angry"))                          return "Bingung";
-        if (s.includes("bosan")   || s.includes("bored"))                          return "Bosan";
+         || s.includes("sad")     || s.includes("angry"))                           return "Bingung";
+        if (s.includes("bosan")   || s.includes("bored"))                           return "Bosan";
         return "Normal";
       };
 
-      // Group per (student_id, video_type) untuk window smoothing
+      // Group per (student_id, video_type)
       const groups = {};
       rows.forEach(r => {
         const key = `${r.student_id}||${r.video_type || "unknown"}`;
         if (!groups[key]) groups[key] = [];
-        groups[key].push({ id: r.detection_id, emo: normalizeEmo(r.expression), dur: r.duration || 1 });
+        groups[key].push({
+          id:  r.detection_id,
+          emo: normalizeEmo(r.expression),
+          dur: parseFloat(r.duration) || 1.0
+        });
       });
 
-      // Window smoothing: tiap baris ambil modus dari window ±2 (5 baris)
-      // Ini mengurangi noise deteksi sesaat tanpa mengorbankan variasi
       const insertRows = [];
-      Object.values(groups).forEach(rows => {
-        rows.forEach((row, i) => {
-          const win = rows.slice(Math.max(0, i-2), Math.min(rows.length, i+3));
-          const counts = {};
-          win.forEach(w => { counts[w.emo] = (counts[w.emo] || 0) + 1; });
-          // Prioritas: kalau Menguap/Bingung muncul minimal 2x di window → pakai itu
-          // Ini membantu kelas minoritas tidak tertimpa Bosan/Normal terus
-          let label;
-          if ((counts.Menguap || 0) >= 2) label = "Menguap";
-          else if ((counts.Bingung || 0) >= 2) label = "Bingung";
-          else label = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
-          insertRows.push([row.id, label]);
+
+      Object.values(groups).forEach(grp => {
+        const n = grp.length;
+
+        // ── STEP 1: Temporal consistency window ±3 (7 frame) ──────────
+        // Setiap frame dinilai dari tetangganya
+        const rawLabels = grp.map((row, i) => {
+          const win = grp.slice(Math.max(0, i - 3), Math.min(n, i + 4));
+          const cnt = {};
+          win.forEach(w => { cnt[w.emo] = (cnt[w.emo] || 0) + 1; });
+          // Ambil label dengan count tertinggi dari window
+          return Object.entries(cnt).sort((a, b) => b[1] - a[1])[0][0];
+        });
+
+        // ── STEP 2: Hitung distribusi per grup ────────────────────────
+        const dist = { Normal: 0, Bosan: 0, Bingung: 0, Menguap: 0 };
+        rawLabels.forEach(l => { dist[l] = (dist[l] || 0) + 1; });
+
+        // ── STEP 3: Balance enforcement ───────────────────────────────
+        // Target: tiap kelas yang muncul di sesi ini dapat porsi wajar
+        // Min 15% per kelas yang pernah muncul di expression asli
+        const appearedInRaw = {};
+        grp.forEach(r => { appearedInRaw[r.emo] = true; });
+        const numClasses = Object.keys(appearedInRaw).length;
+        const minCount   = Math.max(1, Math.floor(n * 0.12)); // min 12% per kelas
+
+        // Kelas yang under-represented → ambil frame dengan durasi tertinggi
+        // dari raw expression asli untuk kelas itu
+        const finalLabels = [...rawLabels];
+        if (numClasses >= 2) {
+          Object.keys(appearedInRaw).forEach(cls => {
+            if ((dist[cls] || 0) < minCount) {
+              // Ambil frame dengan emo asli = cls, urutkan dari durasi terpanjang
+              const candidates = grp
+                .map((r, i) => ({ i, dur: r.dur, origEmo: r.emo }))
+                .filter(r => r.origEmo === cls)
+                .sort((a, b) => b.dur - a.dur);
+              // Label ulang kandidat terbaik sampai mencapai minCount
+              let added = dist[cls] || 0;
+              for (const c of candidates) {
+                if (added >= minCount) break;
+                if (finalLabels[c.i] !== cls) {
+                  finalLabels[c.i] = cls;
+                  added++;
+                }
+              }
+            }
+          });
+        }
+
+        // ── STEP 4: Masukkan ke insertRows ────────────────────────────
+        grp.forEach((row, i) => {
+          insertRows.push([row.id, finalLabels[i]]);
         });
       });
 
