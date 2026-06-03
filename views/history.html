@@ -290,7 +290,6 @@ async function loadAll() {
     document.getElementById('lastUpdated').textContent =
       'Last updated: ' + new Date().toLocaleTimeString();
 
-    // Load actual labels lalu confusion matrix
   } catch(e) {
     console.error('loadAll error:', e);
     showEmpty('Failed to load data. Check server connection.');
@@ -310,8 +309,6 @@ function renderRows(rows) {
   filterRows();
 }
 
-// Map actual labels dari DB: { detection_id: actual_label }
-let actualLabelsMap = {};
 
 
 
