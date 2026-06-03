@@ -266,12 +266,15 @@ const INTERVAL = 3000;
 })();
 
 // ── Load semua data dari /api/history ─────────────────────────────────────────
+let currentOffset = 0;
+const PAGE_SIZE   = 200;
+
 async function loadAll() {
   try {
-    const res  = await fetch('/api/history');
+    currentOffset = 0;
+    const res  = await fetch(`/api/history?limit=${PAGE_SIZE}&offset=0`, { credentials:'include' });
     const data = await res.json();
 
-    // Hapus loading row
     const loadingRow = document.querySelector('.loading-row');
     if (loadingRow) loadingRow.remove();
 
@@ -280,6 +283,7 @@ async function loadAll() {
       maxId      = data.maxId;
       totalCount = data.total;
       buildChips(data.rows);
+      currentOffset = data.rows.length;
     } else {
       totalCount = 0;
       showEmpty('No detection data yet. Waiting for data…');
@@ -290,10 +294,44 @@ async function loadAll() {
     document.getElementById('lastUpdated').textContent =
       'Last updated: ' + new Date().toLocaleTimeString();
 
+    // Tampilkan tombol load more jika masih ada data
+    updateLoadMoreBtn();
+
   } catch(e) {
     console.error('loadAll error:', e);
     showEmpty('Failed to load data. Check server connection.');
   }
+}
+
+async function loadMore() {
+  try {
+    const btn = document.getElementById('loadMoreBtn');
+    if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
+    const res  = await fetch(`/api/history?limit=${PAGE_SIZE}&offset=${currentOffset}`, { credentials:'include' });
+    const data = await res.json();
+    if (data.rows && data.rows.length > 0) {
+      renderRows(data.rows);
+      currentOffset += data.rows.length;
+    }
+    updateLoadMoreBtn();
+  } catch(e) { console.error('loadMore error:', e); }
+}
+
+function updateLoadMoreBtn() {
+  let btn = document.getElementById('loadMoreBtn');
+  if (currentOffset >= totalCount) {
+    if (btn) btn.remove();
+    return;
+  }
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'loadMoreBtn';
+    btn.style.cssText = 'display:block;margin:16px auto;padding:8px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#e2eaf6;font-size:13px;cursor:pointer';
+    document.querySelector('.card')?.appendChild(btn);
+  }
+  btn.textContent = `Load more (${totalCount - currentOffset} remaining)`;
+  btn.disabled = false;
+  btn.onclick = loadMore;
 }
 
 

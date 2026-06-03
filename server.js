@@ -428,11 +428,22 @@ app.get("/api/feed", requireLogin, (req, res) => {
    HISTORY API
 ========================= */
 app.get("/api/history", requireLogin, (req, res) => {
-  history.query("SELECT * FROM detection ORDER BY id ASC", (err, rows) => {
-    if (err) { console.error(err); return res.status(500).json({ error: "db_error" }); }
-    const maxId = rows.length > 0 ? rows[rows.length - 1].id : 0;
-    res.json({ rows, maxId, total: rows.length });
-  });
+  const limit  = parseInt(req.query.limit)  || 200;
+  const offset = parseInt(req.query.offset) || 0;
+  history.query(
+    "SELECT COUNT(*) AS total, MAX(id) AS maxId FROM detection",
+    (err, totals) => {
+      if (err) { console.error(err); return res.status(500).json({ error: "db_error" }); }
+      history.query(
+        "SELECT * FROM detection ORDER BY id DESC LIMIT ? OFFSET ?",
+        [limit, offset],
+        (err2, rows) => {
+          if (err2) { console.error(err2); return res.status(500).json({ error: "db_error" }); }
+          res.json({ rows: rows.reverse(), maxId: totals[0].maxId || 0, total: totals[0].total || 0 });
+        }
+      );
+    }
+  );
 });
 
 app.get("/api/history/latest", requireLogin, (req, res) => {
