@@ -26,30 +26,10 @@ app.use(express.static("public"));
 const liveState = {
   students: {},
   feed:     [],
-  summaries: {}, // persisted summaries (key: studentId)
 };
 
 /* Load summaries dari DB saat server start */
-function loadSummariesFromDB() {
-  if (!db) return;
-  db.query("SELECT * FROM session_summary ORDER BY updated_at DESC", (err, rows) => {
-    if (err) { console.warn("[startup] Gagal load session_summary:", err.message); return; }
-    rows.forEach(row => {
-      try {
-        liveState.summaries[String(row.student_id)] = {
-          studentId:   String(row.student_id),
-          studentName: row.student_name,
-          dominant:    row.dominant,
-          totalDurasi: row.total_durasi,
-          videos:      JSON.parse(row.videos_json || "[]"),
-          timestamp:   new Date(row.updated_at).getTime(),
-        };
-      } catch(e) {}
-    });
-    console.log(`[startup] Loaded ${rows.length} summaries dari DB`);
-  });
-}
-setTimeout(loadSummariesFromDB, 2000);
+
 
 function pushFeed(entry) {
   liveState.feed.unshift(entry);
@@ -565,21 +545,6 @@ app.post("/api/session-summary/save", requireLogin, (req, res) => {
         timestamp:   Date.now(),
       };
 
-      // Simpan ke DB agar tidak hilang saat restart
-      db.query(
-        `INSERT INTO session_summary (student_id, student_name, dominant, total_durasi, videos_json, updated_at)
-         VALUES (?, ?, ?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE
-           student_name=VALUES(student_name),
-           dominant=VALUES(dominant),
-           total_durasi=VALUES(total_durasi),
-           videos_json=VALUES(videos_json),
-           updated_at=NOW()`,
-        [sid, sname, dominant, Math.round(totalDurasi), JSON.stringify(videosArr)],
-        (dbErr) => { if (dbErr) console.warn("[summary/save] Gagal simpan ke session_summary:", dbErr.message); }
-      );
-      // Simpan ke memory juga
-      liveState.summaries[sid] = summary;
 
       broadcast("session-summary", summary);
       console.log(`[session-summary] sid=${sid}, dominant=${dominant}, durasi=${Math.round(totalDurasi)}s`);
@@ -604,9 +569,6 @@ app.get("/api/session-summary", requireLogin, (req, res) => {
 app.post("/api/session-summary/clear", requireLogin, (req, res) => {
   history.query("DELETE FROM detection WHERE student_id IS NOT NULL", (err) => {
     if (err) { console.error(err); return res.status(500).json({ success: false }); }
-    // Hapus juga dari session_summary dan memory
-    db.query("DELETE FROM session_summary", () => {});
-    liveState.summaries = {};
     res.json({ success: true });
   });
 });
@@ -659,11 +621,7 @@ app.get("/api/stream", requireLogin, (req, res) => {
   });
   res.write(`data: ${snapshot}\n\n`);
 
-  // Kirim summaries yang sudah tersimpan (dari DB via liveState.summaries)
-  Object.values(liveState.summaries).forEach(summary => {
-    const payload = JSON.stringify({ type: "session-summary", data: summary });
-    res.write(`data: ${payload}\n\n`);
-  });
+
 
   const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 25000);
   sseClients.add(res);
