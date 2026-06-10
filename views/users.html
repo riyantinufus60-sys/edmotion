@@ -9,17 +9,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:      #080f1c;
-            --surface: #0d1829;
-            --card:    #111e30;
-            --border:  rgba(255,255,255,0.06);
+            --bg:      #f0f4ff;
+            --surface: #ffffff;
+            --card:    #ffffff;
+            --border:  rgba(0,0,0,0.09);
             --muted:   #64748b;
-            --text:    #e2eaf6;
-            --accent:  #6ee7b7;
-            --blue:    #60a5fa;
-            --red:     #f87171;
-            --amber:   #fbbf24;
-            --green:   #4ade80;
+            --text:    #0f172a;
+            --accent:  #10b981;
+            --blue:    #3b82f6;
+            --red:     #ef4444;
+            --amber:   #f59e0b;
+            --green:   #10b981;
             --radius:  14px;
             font-family: 'Space Grotesk', system-ui, sans-serif;
         }
@@ -53,7 +53,7 @@
             text-decoration: none; font-size: 14px;
             transition: all 0.18s;
         }
-        .nav-item:hover  { background: rgba(255,255,255,0.04); color: var(--text); }
+        .nav-item:hover  { background: rgba(0,0,0,0.04); color: var(--text); }
         .nav-item.active {
             background: rgba(96,165,250,0.1); color: var(--blue);
             border-left: 3px solid var(--blue); padding-left: 9px;
@@ -67,7 +67,7 @@
             cursor: pointer; padding: 6px 8px; border-radius: 10px;
             transition: background 0.18s;
         }
-        .profile-btn:hover { background: rgba(255,255,255,0.04); }
+        .profile-btn:hover { background: rgba(0,0,0,0.04); }
         .avatar {
             width: 38px; height: 38px; border-radius: 9px;
             background: linear-gradient(180deg, #0ea5b3, #2563eb);
@@ -79,9 +79,9 @@
         .user-dropdown {
             display: none; position: absolute;
             bottom: calc(100% + 8px); left: 0; right: 0;
-            background: #0d1829; border: 1px solid var(--border);
+            background: #ffffff; border: 1px solid var(--border);
             border-radius: 10px; padding: 6px; z-index: 200;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
         }
         .user-dropdown.open { display: block; }
         .dropdown-item {
@@ -139,7 +139,7 @@
         th, td { padding: 11px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
         th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background: rgba(255,255,255,0.02); }
+        tr:hover td { background: rgba(59,130,246,0.04); }
         tr.hidden-row { display: none; }
         td.pass-col {
             max-width: 180px; overflow: hidden;
@@ -171,7 +171,7 @@
         }
         .modal-overlay.show { display: flex; }
         .modal-box {
-            background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+            background: var(--card); border: 1px solid var(--border);
             border-radius: var(--radius); padding: 28px 32px;
             text-align: center; max-width: 360px; width: 90%;
         }
@@ -183,13 +183,13 @@
             font-size: 13px; font-weight: 600; cursor: pointer;
             font-family: 'Space Grotesk', sans-serif; border: none;
         }
-        .modal-cancel  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1) !important; color: var(--text); }
+        .modal-cancel  { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.12) !important; color: var(--text); }
         .modal-confirm { background: #ef4444; color: #fff; }
         .modal-confirm:hover { background: #dc2626; }
 
         /* ── Add Modal ── */
         .add-modal-box {
-            background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+            background: var(--card); border: 1px solid var(--border);
             border-radius: var(--radius); padding: 32px;
             width: 90%; max-width: 420px;
             max-height: 90vh; overflow-y: auto;
@@ -209,7 +209,7 @@
         .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
         .btn-cancel-form {
             padding: 10px 20px; border-radius: 10px;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.12);
             color: var(--text); font-size: 14px; font-weight: 600;
             cursor: pointer; font-family: 'Space Grotesk', sans-serif;
         }

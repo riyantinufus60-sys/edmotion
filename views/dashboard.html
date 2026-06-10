@@ -9,15 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:      #f5f7fa;
+            --bg:      #eef2ff;
             --surface: #ffffff;
             --card:    #ffffff;
-            --border:  rgba(0,0,0,0.08);
+            --border:  rgba(59,130,246,0.12);
             --muted:   #64748b;
             --text:    #0f172a;
-            --accent:  #6ee7b7;
-            --blue:    #60a5fa;
-            --red:     #f87171;
+            --accent:  #10b981;
+            --blue:    #3b82f6;
+            --red:     #ef4444;
             --radius:  14px;
             font-family: 'Space Grotesk', system-ui, sans-serif;
         }
@@ -37,12 +37,12 @@
         }
         .glow-1 {
             width: 500px; height: 500px; top: -160px; right: 100px;
-            background: radial-gradient(circle, rgba(110,231,183,0.04), transparent 70%);
+            background: radial-gradient(circle, rgba(16,185,129,0.09), transparent 70%);
             animation: g1 22s ease-in-out infinite alternate;
         }
         .glow-2 {
             width: 380px; height: 380px; bottom: -100px; right: -80px;
-            background: radial-gradient(circle, rgba(96,165,250,0.04), transparent 70%);
+            background: radial-gradient(circle, rgba(59,130,246,0.09), transparent 70%);
             animation: g2 28s ease-in-out infinite alternate;
         }
         @keyframes g1 { to { transform: translate(40px, 30px) scale(1.12); } }
@@ -55,7 +55,7 @@
         .sidebar {
             width: 240px;
             flex-shrink: 0;
-            background: var(--surface);
+            background: #f8faff;
             border-right: 1px solid var(--border);
             padding: 24px 16px;
             display: flex;
@@ -85,9 +85,9 @@
             text-decoration: none; font-size: 14px;
             transition: all 0.18s;
         }
-        .nav-item:hover  { background: rgba(255,255,255,0.04); color: var(--text); }
+        .nav-item:hover  { background: rgba(59,130,246,0.06); color: var(--text); }
         .nav-item.active {
-            background: rgba(96,165,250,0.1);
+            background: rgba(59,130,246,0.12);
             color: var(--blue);
             border-left: 3px solid var(--blue);
             padding-left: 9px;
@@ -105,7 +105,7 @@
             cursor: pointer; padding: 6px 8px; border-radius: 10px;
             transition: background 0.18s;
         }
-        .profile-btn:hover { background: rgba(255,255,255,0.04); }
+        .profile-btn:hover { background: rgba(59,130,246,0.06); }
         .avatar {
             width: 38px; height: 38px; border-radius: 9px;
             background: linear-gradient(180deg, #0ea5b3, #2563eb);
@@ -153,8 +153,8 @@
         /* Badge */
         .badge {
             display: inline-flex; align-items: center; gap: 8px;
-            border: 1px solid rgba(110,231,183,0.22);
-            background: rgba(110,231,183,0.05);
+            border: 1px solid rgba(16,185,129,0.3);
+            background: rgba(16,185,129,0.08);
             padding: 6px 16px; border-radius: 999px;
             font-size: 10.5px; font-weight: 600;
             letter-spacing: 0.13em; text-transform: uppercase;
@@ -187,7 +187,7 @@
         /* Divider */
         .divider {
             width: 50px; height: 1px;
-            background: linear-gradient(to right, transparent, rgba(110,231,183,0.4), transparent);
+            background: linear-gradient(to right, transparent, rgba(16,185,129,0.5), transparent);
             margin: 0 auto 36px;
             opacity: 0; animation: fadeUp 0.6s 0.5s ease forwards;
         }
