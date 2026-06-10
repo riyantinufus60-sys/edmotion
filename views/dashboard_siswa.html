@@ -370,6 +370,7 @@
   }
   /* Hide face detection panel - detection still runs in background */
   .cam-panel { display:none !important; }
+  #camPopup  { display:none !important; }
   #noFaceOverlay { display:none !important; }
 </style>
 </head>
@@ -1044,7 +1045,7 @@ async function faceDetectLoop() {
   OPEN / CLOSE CAMERA
 ============================================================ */
 async function openCamera() {
-  document.getElementById('camPopup').classList.add('open');
+  // camPopup sengaja tidak dibuka — face detection tetap berjalan di background
   const ok = await loadModels();
   try {
     camMedia = await navigator.mediaDevices.getUserMedia({
