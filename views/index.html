@@ -204,10 +204,8 @@
   <div class="panel" id="panelRegister">
     <div class="divider">Daftar sebagai</div>
     <div class="role-selector">
-      <div class="role-btn selected" id="regRoleAdmin" onclick="selectRegRole('admin')">
-        <span class="role-icon">🛡️</span><span class="role-label">Admin</span><span class="role-desc">Kelola &amp; pantau siswa</span>
-      </div>
-      <div class="role-btn" id="regRoleSiswa" onclick="selectRegRole('siswa')">
+
+      <div class="role-btn" id="regRoleSiswa" onclick="selectRegRole('siswa')" class="role-btn selected">
         <span class="role-icon">🎓</span><span class="role-label">Siswa</span><span class="role-desc">Ikuti sesi pembelajaran</span>
       </div>
     </div>
@@ -247,7 +245,7 @@
 </div>
 
 <script>
-  let loginRole = 'admin', registerRole = 'admin';
+  let loginRole = 'admin', registerRole = 'siswa';
 
   function switchMode(mode) {
     const isLogin = mode === 'login';

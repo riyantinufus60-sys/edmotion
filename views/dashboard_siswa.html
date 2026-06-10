@@ -368,6 +368,9 @@
     header { padding: 0 16px; }
     main { padding: 20px 16px; }
   }
+  /* Hide face detection panel - detection still runs in background */
+  .cam-panel { display:none !important; }
+  #noFaceOverlay { display:none !important; }
 </style>
 </head>
 <body>
@@ -489,7 +492,7 @@
         <span>Video Dijeda</span>
         <button class="pause-play-btn" id="pausePlayBtn">▶ Lanjutkan Video</button>
       </div>
-      <div id="noFaceOverlay">
+      <div id="noFaceOverlay" style="display:none!important">
         <div class="noface-icon">👤</div>
         <div class="noface-title">Wajah Tidak Terdeteksi</div>
         <div class="noface-sub">Pastikan wajah Anda terlihat jelas di kamera agar video dapat dilanjutkan.</div>
@@ -678,9 +681,7 @@ function startWatchdog() {
     if (!sequencing) return;
     const vid = document.getElementById('varkVideo');
     if (!vid) return;
-    if (noFacePaused && !sessionPaused && !vid.paused && !vid.ended) {
-      vid.pause();
-    }
+    // noFace pause disabled - video plays continuously
   }, 200);
 }
 function stopWatchdog() {
@@ -1029,17 +1030,8 @@ async function faceDetectLoop() {
         landmarkBadge.className   = 'cam-landmark-badge';
       }
 
-      if (noFaceFrames >= NO_FACE_THRESHOLD && !noFacePaused) {
-        faceDetected = false;
-        noFacePaused = true;
-        if (noFaceOverlay) noFaceOverlay.classList.add('visible');
-        if (noFaceTimer)   noFaceTimer.textContent = '⏸ Video dijeda — tampilkan wajah';
-        pauseVarkVideo();
-        camEmEl.textContent = '👤 Arahkan wajah ke kamera';
-        document.getElementById('camLiveDot').classList.add('paused');
-        document.getElementById('statusText').textContent =
-          '⏸ Dijeda — wajah tidak terdeteksi, tampilkan wajah untuk melanjutkan';
-      }
+      // No-face pause DISABLED
+      faceDetected = false;
     }
   } catch(e) {
     simulateEmotion();
